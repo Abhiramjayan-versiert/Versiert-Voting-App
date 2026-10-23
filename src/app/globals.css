@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #080808;
+  --color-paper: #ffffff;
+  --color-lime: #c6f36b;
+  --color-lime-deep: #a9dc3f;
+  --color-g50: #f7f7f6;
+  --color-g100: #efefed;
+  --color-g200: #e2e2df;
+  --color-g300: #c9c9c5;
+  --color-g400: #9a9a95;
+  --color-g500: #6b6b67;
+  --color-g600: #4a4a47;
+  --color-g700: #2e2e2c;
+  --color-g800: #1c1c1b;
+  --color-g900: #121212;
+  --color-danger: #b42318;
+  --color-danger-soft: #fef3f2;
+  --color-warn: #8a5a00;
+  --color-warn-soft: #fff8e6;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --radius-card: 14px;
+  --animate-in: fade-in 180ms ease-out;
+}
+
+@keyframes fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; text-rendering: optimizeLegibility; }
+  body { @apply bg-paper text-ink antialiased; font-feature-settings: "ss01", "cv11"; }
+  ::selection { background: var(--color-lime); color: var(--color-ink); }
+  :focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; border-radius: 6px; }
+  .dark-surface :focus-visible, .dark-surface:focus-visible { outline-color: var(--color-lime); }
+  h1, h2, h3 { letter-spacing: -0.025em; }
+  input, select, textarea, button { font: inherit; }
+  [hidden] { display: none !important; }
+}
+
+@layer utilities {
+  .display { font-size: clamp(2.4rem, 6vw, 4.75rem); line-height: 0.98; letter-spacing: -0.045em; font-weight: 600; }
+  .eyebrow { font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 500; }
+  .tabular { font-variant-numeric: tabular-nums; }
+  .safe-bottom { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+  .safe-top { padding-top: env(safe-area-inset-top); }
+  .hairline { border-color: var(--color-g200); }
+  .dark-surface .hairline { border-color: var(--color-g700); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff !important; color: #000 !important; }
+  .print-break { break-inside: avoid; }
+}
