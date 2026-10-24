@@ -37,6 +37,7 @@ export default async function College({ params, searchParams }: { params: Promis
       <PageHeader dark eyebrow={<Link href="/platform/colleges" className="hover:text-lime">← Colleges</Link>} title={c.name}
         description={<span className="font-mono">{c.code}</span>}
         actions={<>
+          <Link href={`/college/${id}`} className="inline-flex h-9 items-center rounded-full bg-lime px-4 text-sm font-medium text-ink hover:bg-lime-deep">Manage elections</Link>
           <Badge tone={c.status}>{c.status}</Badge>
           {c.status === "active"
             ? <Confirm triggerClass="inline-flex h-9 items-center rounded-full border border-g600 px-4 text-sm text-paper hover:border-[#ffd27a]" trigger="Suspend college" title="Suspend this college?" tone="danger" confirmLabel="Suspend"
@@ -89,7 +90,7 @@ export default async function College({ params, searchParams }: { params: Promis
           <Table dark caption="Elections at this college">
             <thead><tr><th>Election</th><th>Status</th><th>Voting window</th><th>Turnout</th></tr></thead>
             <tbody>{d.elections.map((e) => { const st = effectiveStatus(e as never); return (
-              <tr key={e.id}><td>{e.title}<span className="block font-mono text-xs text-g500">{e.public_ref}</span></td><td><Badge tone={st}>{STATUS_LABEL[st]}</Badge></td>
+              <tr key={e.id}><td><Link href={`/college/${id}/elections/${e.id}`} className="hover:text-lime">{e.title}</Link><span className="block font-mono text-xs text-g500">{e.public_ref}</span></td><td><Badge tone={st}>{STATUS_LABEL[st]}</Badge></td>
                 <td className="text-g300">{fmtDate(e.starts_at)} → {fmtDate(e.ends_at)}</td><td className="tabular">{e.participants}/{e.voters}</td></tr>); })}
             </tbody>
           </Table>

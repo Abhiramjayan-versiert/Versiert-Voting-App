@@ -12,7 +12,7 @@ export default async function Elections({ params, searchParams }: { params: Prom
   const els = await withCtx(ctx, (tx) => electionsWithStats(tx, cid));
   return (
     <>
-      {sp.deleted && <Notice tone="success" className="mb-5">Draft deleted.</Notice>}
+      {sp.deleted && <Notice tone="success" className="mb-5">Election deleted.</Notice>}
       <PageHeader eyebrow="Elections" title="All elections" actions={<ButtonLink href={`/college/${cid}/elections/new`} variant="primary">New election</ButtonLink>} />
       {els.length === 0 ? <Empty title="No elections yet" action={<ButtonLink href={`/college/${cid}/elections/new`} variant="primary">Create an election</ButtonLink>} /> : (<>
         <ul className="space-y-3 md:hidden">{els.map((e) => (

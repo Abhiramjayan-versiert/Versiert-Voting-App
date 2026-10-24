@@ -92,9 +92,11 @@ export async function requireSuperAdmin(): Promise<{ s: AdminSession; ctx: Ctx }
 export async function requireCollegeAdmin(collegeId?: string): Promise<{ s: AdminSession; ctx: Ctx }> {
   const s = await getAdminSession();
   if (!s) redirect("/admin/login");
-  if (s.user.role !== "college_admin") redirect(s.user.role === "super_admin" ? "/platform" : "/forbidden");
   const gate = await mfaGate(s);
   if (gate) redirect(gate);
+  // The platform owner can manage every college's elections (all actions are audit-logged).
+  if (s.user.role === "super_admin") return { s, ctx: { role: "super_admin", userId: s.user.id } };
+  if (s.user.role !== "college_admin") redirect("/forbidden");
   if (collegeId && !s.collegeIds.includes(collegeId)) redirect("/forbidden");
   return { s, ctx: { role: "college_admin", userId: s.user.id, collegeIds: s.collegeIds } };
 }
@@ -102,7 +104,13 @@ export async function requireCollegeAdmin(collegeId?: string): Promise<{ s: Admi
 /** Non-redirecting variant for API route handlers. */
 export async function adminForApi(kind: "super_admin" | "college_admin") {
   const s = await getAdminSession();
-  if (!s || s.user.role !== kind) return null;
+  if (!s) return null;
+  // Super Admin may use every college-admin API (e.g. exports) across all colleges.
+  if (kind === "college_admin" && s.user.role === "super_admin") {
+    if (await mfaGate(s)) return null;
+    return { s, ctx: { role: "super_admin", userId: s.user.id } as Ctx };
+  }
+  if (s.user.role !== kind) return null;
   if (await mfaGate(s)) return null;
   const ctx: Ctx = kind === "super_admin" ? { role: "super_admin", userId: s.user.id } : { role: "college_admin", userId: s.user.id, collegeIds: s.collegeIds };
   return { s, ctx };

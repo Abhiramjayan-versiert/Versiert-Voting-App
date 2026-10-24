@@ -6,6 +6,7 @@ import { env } from "@/lib/env";
 import { Card, Stat, Notice, ButtonLink, fmtDate, relTime, Field, Input } from "@/components/ui";
 import { Confirm, CopyButton, ActionForm, SubmitButton } from "@/components/forms";
 import { lifecycleAction, deleteDraftAction } from "@/app/college/actions";
+import { deleteAnyElectionAction } from "@/app/platform/actions";
 import { utcToZonedInput } from "@/lib/action-utils";
 import { pct } from "@/lib/results";
 
@@ -14,7 +15,8 @@ export const metadata = { title: "Election overview" };
 
 export default async function Overview({ params }: { params: Promise<{ cid: string; eid: string }> }) {
   const { cid, eid } = await params;
-  const { ctx, e, base } = await loadElection(cid, eid);
+  const { s, ctx, e, base } = await loadElection(cid, eid);
+  const isSuper = s.user.role === "super_admin";
   const st = e.effective as string;
   const r = await readiness(ctx, eid);
   const [stats] = await withCtx(ctx, (tx) => tx`select
@@ -101,6 +103,15 @@ export default async function Overview({ params }: { params: Promise<{ cid: stri
         <Notice tone="info" title="Data retention">
           Voter list, verification records and ballot data will be deleted on <strong>{fmtDate(e.purge_after, e.timezone)}</strong> ({e.retention_days}-day policy). {e.keep_public_results ? "The aggregate results page will remain available." : "The results page will also be removed."} You'll get an email {`a few days`} before.
         </Notice>
+      )}
+      {isSuper && st !== "draft" && (
+        <div className="rounded-[var(--radius-card)] border border-[#fecdca] p-5">
+          <h2 className="font-semibold text-danger">Super Admin: delete this election</h2>
+          <p className="mt-1 text-sm text-g600">Permanently removes the election and all its data, whatever its status. Audit-logged with your reason.</p>
+          <div className="mt-3"><Confirm triggerClass={pill} trigger="Delete election permanently" title="Permanently delete this election?" tone="danger" confirmLabel="Delete permanently"
+            body={<p>The voter list, positions, candidates, ballots and results are deleted for good. This cannot be undone.</p>}
+            action={deleteAnyElectionAction} hidden={{ election_id: eid, return_to: "college" }} requireText={e.public_ref} reasonLabel="Reason (audit-logged)" /></div>
+        </div>
       )}
       {st === "deleted" && <Notice tone="info" title="Election data deleted">This election's personal data and ballots were deleted under the retention policy on {fmtDate(e.deleted_at, e.timezone)}.</Notice>}
     </div>

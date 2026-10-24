@@ -12,7 +12,7 @@ V.app is a full-stack Next.js + PostgreSQL application with three roles — **De
 
 | Role | Can | Cannot |
 |---|---|---|
-| **Super Admin** (platform owner, provisioned by CLI only, MFA mandatory) | Create/suspend colleges; invite, assign, suspend, revoke administrators; platform config (maintenance, retention, auth, rate limits, features); monitor health, jobs, imports, cleanup; review security events and the audit log; force early deletion | See how any individual voted |
+| **Super Admin** (platform owner, provisioned by CLI only, MFA mandatory) | Full access to every college's elections (create, edit, run, publish, results, exports, permanent delete); create/suspend colleges; invite, assign, suspend, revoke administrators; platform config (maintenance, retention, auth, rate limits, features); monitor health, jobs, imports, cleanup; review security events and the audit log; force early deletion | See how any individual voted |
 | **College admin** (invited, optional/required MFA) | Create elections; import voter lists; manage positions/candidates; set rules; activate, pause, resume, close; monitor turnout; review integrity; publish results; export reports | See other colleges; edit/delete accepted ballots; see secret-ballot choices |
 | **Student** (no account; college email + student ID) | Verify identity, vote once per eligible position, skip positions and return later, get a receipt code, view published results | Vote twice for a position; vote without matching email + student ID; see results before publication |
 

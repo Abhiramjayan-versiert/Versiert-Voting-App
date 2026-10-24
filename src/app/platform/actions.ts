@@ -291,3 +291,30 @@ export async function revokeAllMySessionsAction(_: ActionState, __?: FormData): 
     redirect("/admin/login?signed_out=1");
   });
 }
+
+/** Super Admin: permanently delete ANY election (draft, running, closed or published). Typed confirmation + reason, audit-logged. */
+export async function deleteAnyElectionAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let dest = "";
+  const res = await run(async () => {
+    const { ctx, a } = await actor();
+    const id = str(fd, "election_id");
+    if (!isUuid(id)) throw new UserError("Election not found.");
+    const [e] = await withCtx(ctx, (tx) => tx`select id, public_ref, title, status, college_id from elections where id = ${id}`);
+    if (!e) throw new UserError("Election not found.");
+    if (str(fd, "confirm_text") !== e.public_ref) throw new UserError(`Type ${e.public_ref} exactly to confirm.`);
+    const reason = str(fd, "reason");
+    if (reason.length < 10) throw new UserError("Give a reason of at least 10 characters.");
+    await withCtx(ctx, async (tx) => {
+      const [r] = await tx`select ballot.delete_election(${id}) as c`;
+      const counts = r.c as Record<string, unknown>;
+      await tx`insert into deletion_receipts (election_ref, college_id, election_id, kept_aggregate, counts, verified)
+               values (${e.public_ref}, ${e.college_id}, ${id}, false, ${tx.json({ ...counts, manual: true } as never)}, true)`;
+      await audit({ actorId: a.id, actorLabel: a.label, collegeId: e.college_id, electionId: id, action: "election.delete_by_super_admin",
+        target: e.title, details: { reason, status_at_deletion: e.status, public_ref: e.public_ref }, ipHash: a.ipHash }, tx);
+    });
+    revalidatePath("/platform/elections");
+    dest = str(fd, "return_to") === "college" ? `/college/${e.college_id}/elections?deleted=1` : "/platform/elections?deleted=1";
+  });
+  if (dest) redirect(dest);
+  return res;
+}

@@ -24,7 +24,8 @@ export default async function CollegeLayout({ children, params }: { children: Re
         {college.has_logo && <img src={`/media/logo/${cid}`} alt="" className="size-8 rounded-md bg-paper object-contain" />}
         <p className="text-sm font-medium leading-tight text-paper">{college.name}</p>
       </div>
-      {s.collegeIds.length > 1 && <Link href="/college" className="mt-2 inline-block text-xs text-g400 underline hover:text-lime">Switch college</Link>}
+      {(s.collegeIds.length > 1 || s.user.role === "super_admin") && <Link href="/college" className="mt-2 inline-block text-xs text-g400 underline hover:text-lime">Switch college</Link>}
+      {s.user.role === "super_admin" && <Link href="/platform" className="mt-1 block text-xs text-lime underline">← Developer console</Link>}
       {isTestMode() && <p className="mt-2 text-[0.7rem] text-lime">TEST MODE — fictional data</p>}
     </div>
   );
@@ -36,7 +37,7 @@ export default async function CollegeLayout({ children, params }: { children: Re
       { href: `${base}/audit`, label: "Activity log" },
       { href: `${base}/profile`, label: "College profile" },
       { href: "/help/admin", label: "Administrator guide" },
-    ]} user={s.user} roleLabel="College election admin" top={top}>
+    ]} user={s.user} roleLabel={s.user.role === "super_admin" ? "Super Admin · full access" : "College election admin"} top={top}>
       {children}
     </AdminShell>
   );

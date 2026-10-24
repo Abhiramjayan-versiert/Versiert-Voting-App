@@ -166,6 +166,35 @@ describe("results, integrity and publication", () => {
   });
 });
 
+describe("Super Admin full election access", () => {
+  it("super-admin context can read and manage any college's election", async () => {
+    const a = await makeElection(); const b = await makeElection();
+    const sup: Ctx = { role: "super_admin", userId: adminUser };
+    expect((await E.getElection(sup, a.electionId))?.id).toBe(a.electionId);
+    expect((await E.getElection(sup, b.electionId))?.id).toBe(b.electionId);
+    await E.pause(sup, actor, a.electionId, "Super admin emergency pause");
+    expect((await E.getElection(sup, a.electionId))?.status).toBe("paused");
+  });
+  it("delete_election removes an election with accepted ballots, and nothing is left behind", async () => {
+    const f = await makeElection({ voters: 3 });
+    await cast(await session(f, 0), [{ position_id: f.positions[0].id, candidate_ids: [f.positions[0].cands[0]] }]);
+    const [r] = await appDb()`select ballot.delete_election(${f.electionId}) as c`;
+    expect(r.c.ballot_selections).toBe(1);
+    expect(r.c.voters).toBe(3);
+    for (const t of ["voters", "positions", "candidates", "participations", "vote_submissions", "voter_sessions"]) {
+      const [{ n }] = await ownerDb().unsafe(`select count(*)::int as n from ${t} where election_id = $1`, [f.electionId]);
+      expect(n, t).toBe(0);
+    }
+    const [{ n: sel }] = await ownerDb()`select count(*)::int as n from ballot.selections where election_id = ${f.electionId}`;
+    expect(sel).toBe(0);
+    expect(await ownerDb()`select id from elections where id = ${f.electionId}`).toHaveLength(0);
+    // Outside this function, ballots stay immutable.
+    const g = await makeElection();
+    await cast(await session(g, 0), [{ position_id: g.positions[0].id, candidate_ids: [g.positions[0].cands[0]] }]);
+    await expect(ownerDb()`delete from ballot.selections where election_id = ${g.electionId}`).rejects.toThrow(/immutable/);
+  });
+});
+
 describe("retention and deletion lifecycle", () => {
   it("refuses premature purge, then deletes personal data and keeps the public aggregate", async () => {
     const f = await makeElection({ voters: 3, retentionDays: 1, keepPublic: true });

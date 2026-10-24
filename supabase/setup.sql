@@ -3,7 +3,7 @@
 -- 1. Replace CHANGE_ME_APP_DB_PASSWORD below with a long random password.
 --    (Letters and numbers only — avoid quotes and @ : / ? # so it works in a URL.)
 -- 2. Paste this whole file into Supabase → SQL Editor → Run.
--- Safe to run once on an empty project. Includes migrations: 0001_core.sql, 0002_ballot_functions.sql, 0003_rls_and_grants.sql, 0004_mfa_replay.sql, 0005_grants_migrations.sql, 0006_student_id_verification.sql, 0007_supabase_hardening.sql, 0008_fixed_search_paths.sql
+-- Safe to run once on an empty project. Includes migrations: 0001_core.sql, 0002_ballot_functions.sql, 0003_rls_and_grants.sql, 0004_mfa_replay.sql, 0005_grants_migrations.sql, 0006_student_id_verification.sql, 0007_supabase_hardening.sql, 0008_fixed_search_paths.sql, 0009_super_admin_delete_election.sql
 -- ============================================================================
 
 do $$ begin
@@ -949,5 +949,36 @@ alter function app.snapshot_delete_guard() set search_path = public, pg_temp;
 alter function ballot.block_mutation() set search_path = public, pg_temp;
 
 insert into schema_migrations (name, checksum) values ('0008_fixed_search_paths.sql', '6f1cec6b1e03da75dab17183978ba39496bf7aa034400a8bc2dd7bef9e8d72c9') on conflict (name) do nothing;
+
+-- ─── 0009_super_admin_delete_election.sql ──────────────────────────────────
+-- Permanent deletion of an entire election (any status). Called only by the Super Admin
+-- (enforced in the application and audit-logged). Bypasses ballot immutability for this one
+-- purpose and returns counts for a deletion receipt.
+create or replace function ballot.delete_election(p_election uuid)
+returns jsonb
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  e elections%rowtype;
+  c jsonb := '{}'::jsonb;
+  n bigint;
+begin
+  select * into e from elections where id = p_election for update;
+  if not found then raise exception 'NOT_FOUND'; end if;
+  perform set_config('ballot.purging', 'on', true);
+  delete from ballot.selections where election_id = e.id;  get diagnostics n = row_count; c := c || jsonb_build_object('ballot_selections', n);
+  delete from participations where election_id = e.id;     get diagnostics n = row_count; c := c || jsonb_build_object('participations', n);
+  delete from vote_submissions where election_id = e.id;   get diagnostics n = row_count; c := c || jsonb_build_object('vote_submissions', n);
+  select count(*) into n from voters where election_id = e.id;     c := c || jsonb_build_object('voters', n);
+  select count(*) into n from candidates where election_id = e.id; c := c || jsonb_build_object('candidates', n);
+  select count(*) into n from positions where election_id = e.id;  c := c || jsonb_build_object('positions', n);
+  delete from publication_history where election_id = e.id;
+  delete from result_snapshots where election_id = e.id;   get diagnostics n = row_count; c := c || jsonb_build_object('result_snapshots', n);
+  delete from elections where id = e.id;                   -- cascades voters, positions, candidates, sessions, imports, jobs
+  return c || jsonb_build_object('status_at_deletion', e.status, 'public_ref', e.public_ref, 'college_id', e.college_id);
+end $$;
+revoke execute on function ballot.delete_election(uuid) from public;
+grant execute on function ballot.delete_election(uuid) to vapp_app;
+
+insert into schema_migrations (name, checksum) values ('0009_super_admin_delete_election.sql', '61923addeaeadeaf7df13ae9b7ed4198ab30cecc37dfe841d84d8ea10899f9a8') on conflict (name) do nothing;
 
 select 'V.app database ready — ' || count(*) || ' migrations recorded' as status from schema_migrations;
