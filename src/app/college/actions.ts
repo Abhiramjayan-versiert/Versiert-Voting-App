@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireCollegeAdmin } from "@/lib/auth";
 import { withCtx } from "@/lib/db";
+import { audit } from "@/lib/audit";
 import { ipHash } from "@/lib/request";
 import { run, str, optStr, bool, isUuid, zonedToUtc, readImage } from "@/lib/action-utils";
 import * as E from "@/lib/elections";
@@ -146,6 +147,20 @@ export async function removeVotersAction(_: ActionState, fd: FormData): Promise<
     const n = await E.removeVoters(ctx, a, e.id, all ? "all" : ids);
     refresh(e);
     return { ok: true, message: `${n} voter(s) removed.` };
+  });
+}
+
+export async function unlockVoterAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  return run(async () => {
+    const { ctx, e, a } = await scope(str(fd, "election_id"));
+    const id = str(fd, "voter_id"); if (!isUuid(id)) throw new UserError("Voter not found.");
+    const [v] = await withCtx(ctx, (tx) => tx`select email from voters where id = ${id} and election_id = ${e.id}`);
+    if (!v) throw new UserError("Voter not found.");
+    const { unlockVoter } = await import("@/lib/voter");
+    const cleared = await unlockVoter(e.id, v.email);
+    await withCtx(ctx, (tx) => audit({ actorId: a.id, actorLabel: a.label, collegeId: e.college_id, electionId: e.id, action: "voter.unlock", target: v.email, details: { cleared }, ipHash: a.ipHash }, tx));
+    refresh(e);
+    return { ok: true, message: `${v.email} can try again now. Ask them to re-enter their email and student ID carefully.` };
   });
 }
 

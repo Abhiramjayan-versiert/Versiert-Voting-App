@@ -5,7 +5,8 @@ import { Card, Notice, Table, Badge, Field, Input, fmtDate, Empty, ButtonLink } 
 import { ActionForm, SubmitButton, Confirm } from "@/components/forms";
 import { VoterImport } from "@/components/voter-import";
 import { WizardSteps } from "@/components/wizard";
-import { previewImportAction, commitImportAction, addVoterAction, removeVotersAction } from "@/app/college/actions";
+import { previewImportAction, commitImportAction, addVoterAction, removeVotersAction, unlockVoterAction } from "@/app/college/actions";
+import { lockedVoterEmails } from "@/lib/voter";
 
 export const metadata = { title: "Eligible voters" };
 const PAGE = 50;
@@ -25,6 +26,7 @@ export default async function Voters({ params, searchParams }: { params: Promise
                    order by v.email limit ${PAGE} offset ${(page - 1) * PAGE}`,
     imports: await tx`select id, filename, status, total_rows, accepted, rejected, duplicates, already_registered, error, created_at from voter_imports where election_id = ${eid} order by created_at desc limit 10`,
   }));
+  const locked = await lockedVoterEmails(eid, d.rows.map((v) => v.email as string));
   const canImport = e.status === "draft" || e.status === "paused";
   const showVoted = !["draft", "scheduled"].includes(e.effective);
   return (
@@ -52,7 +54,12 @@ export default async function Voters({ params, searchParams }: { params: Promise
                   <thead><tr><th>Email</th><th>Name</th><th>Student ID</th><th>Group</th>{showVoted && <th>Participation</th>}{e.status === "draft" && <th><span className="sr-only">Remove</span></th>}</tr></thead>
                   <tbody>{d.rows.map((v) => (
                     <tr key={v.id}><td className="font-mono text-[0.8rem]">{v.email}</td><td>{v.name ?? "—"}</td><td>{v.student_id ?? "—"}</td><td>{v.voter_group ?? "—"}</td>
-                      {showVoted && <td>{v.voted ? <Badge tone="completed">Voted</Badge> : <span className="text-g500">—</span>}</td>}
+                      {showVoted && <td>{v.voted ? <Badge tone="completed">Voted</Badge> : locked.has(v.email) ? (
+                        <span className="flex flex-wrap items-center gap-2"><Badge tone="failed">Locked out</Badge>
+                          <Confirm triggerClass="text-xs underline hover:text-ink" trigger="Unlock" title="Unlock this voter?" confirmLabel="Unlock" tone="primary"
+                            body={<p>{v.email} entered wrong details too many times. Unlock only after confirming it's really this student (e.g. ID card). Their wrong attempts are cleared and they can verify again immediately.</p>}
+                            action={unlockVoterAction} hidden={{ election_id: eid, voter_id: v.id }} /></span>
+                      ) : <span className="text-g500">—</span>}</td>}
                       {e.status === "draft" && <td><Confirm triggerClass="text-xs text-g500 underline hover:text-danger" trigger="Remove" title="Remove this voter?" confirmLabel="Remove" tone="danger" body={<p>{v.email} will no longer be eligible.</p>} action={removeVotersAction} hidden={{ election_id: eid, voter_id: v.id }} /></td>}
                     </tr>))}
                   </tbody>

@@ -177,3 +177,29 @@ export async function ballotFor(electionId: string, voterId: string, voterGroup:
     return { positions, candidates };
   });
 }
+
+/** Rate-limit keys that can lock a single voter out (wrong student IDs / too many code requests). */
+function voterLimitKeys(electionId: string, email: string) {
+  const k = emailKey(electionId, email);
+  return { verify: `verify-email:${k}`, send: `otp-send:${k}` };
+}
+
+/** Which of these voter emails are currently locked out of verification. */
+export async function lockedVoterEmails(electionId: string, emails: string[]) {
+  if (!emails.length) return new Set<string>();
+  const cfg = await getConfig();
+  const byKey = new Map<string, string>();
+  for (const em of emails) { const k = voterLimitKeys(electionId, em); byKey.set(k.verify, em); byKey.set(k.send, em); }
+  const rows = await sql()`select key from rate_limits where key = any(${[...byKey.keys()]}) and (
+                             (key like 'verify-email:%' and count >= ${cfg.otp_max_attempts} and window_start > now() - interval '1 hour') or
+                             (key like 'otp-send:%' and count >= 3 and window_start > now() - interval '15 minutes'))`;
+  return new Set(rows.map((r) => byKey.get(r.key as string)!));
+}
+
+/** Clears a voter's lockout and cancels any outstanding email codes. Network-wide limits are untouched. */
+export async function unlockVoter(electionId: string, email: string) {
+  const { verify, send } = voterLimitKeys(electionId, email);
+  const r = await sql()`delete from rate_limits where key in (${verify}, ${send})`;
+  await sql()`update otp_challenges set consumed_at = now() where election_id = ${electionId} and email_hmac = ${emailKey(electionId, email)} and consumed_at is null`;
+  return r.count > 0;
+}

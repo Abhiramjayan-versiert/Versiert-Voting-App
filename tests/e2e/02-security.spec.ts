@@ -98,6 +98,23 @@ test("guessing student IDs is locked out per email", async ({ page }) => {
   await page.fill("#email", "student004@northfield.test"); await page.fill("#student_id", "T0004");
   await page.click("button:has-text('Continue')");
   await expect(page.getByText(/Too many attempts for this email/)).toBeVisible();
+
+  // An administrator can see the lockout and unlock the student after checking their identity.
+  const admin = await page.context().browser()!.newPage();
+  await loginAdmin(admin, NF, PW);
+  const url = new URL(admin.url()).pathname; // /college/<cid>
+  await admin.goto(`${url}/elections`);
+  await admin.getByRole("link", { name: "College Union Election 2026" }).first().click();
+  await admin.goto(admin.url().replace(/\/?$/, "") + "/voters?q=student004");
+  const row = admin.locator("tr", { hasText: "student004@northfield.test" });
+  await expect(row.getByText("Locked out")).toBeVisible();
+  await row.getByRole("button", { name: "Unlock" }).click();
+  await admin.locator("dialog[open]").getByRole("button", { name: "Unlock" }).click();
+  await expect(admin.getByText(/can try again now/)).toBeVisible();
+  await admin.reload();
+  await expect(admin.locator("tr", { hasText: "student004@northfield.test" }).getByText("Locked out")).toHaveCount(0);
+  await admin.close();
+  await verifyVoter(page, page.context(), SLUG, "student004@northfield.test");
 });
 
 test("tampered candidate IDs, cross-origin posts, replays and expired sessions", async ({ page, context }) => {
