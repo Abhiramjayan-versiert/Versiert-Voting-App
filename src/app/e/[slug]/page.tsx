@@ -46,7 +46,7 @@ export default async function Entry({ params, searchParams }: { params: Promise<
       <section className="mt-10 rounded-2xl bg-g50 p-5 sm:p-6" aria-labelledby="how">
         <h2 id="how" className="font-semibold">How it works</h2>
         <ol className="mt-3 space-y-2 text-sm text-g600 list-decimal pl-5">
-          <li>Enter your official college email and your student ID. Both must match your college's voter list.</li>
+          <li>Enter the email address your college registered for you and your student ID. Both must match the voter list your college uploaded.</li>
           <li>Your ballot opens for a short session — keep the tab open until you submit.</li>
           <li>Choose a candidate for each position, review your choices, then submit. You may skip a position and come back later while voting is open.</li>
           <li>You can vote once per position. Submitted choices are final.</li>

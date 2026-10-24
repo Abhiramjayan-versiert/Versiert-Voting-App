@@ -94,9 +94,8 @@ export async function previewImportAction(_: ActionState, fd: FormData): Promise
     const { sheet, name, maxRows } = await readUpload(fd);
     const guess = guessMapping(sheet.headers);
     const m = mappingFrom(fd, guess);
-    const [col] = await withCtx(ctx, (tx) => tx`select email_domains from colleges where id = ${e.college_id}`);
     const mapped = m.email >= 0 && m.studentId != null && m.studentId >= 0;
-    const v = mapped ? validateRows(sheet, m, col.email_domains) : null;
+    const v = mapped ? validateRows(sheet, m) : null;
     return { ok: true, message: mapped ? undefined : "Choose the email and student ID columns below, then press “Re-check with these columns”.", data: {
       filename: name, headers: sheet.headers, sample: sheet.rows.slice(0, 8), total: sheet.rows.length, truncated: sheet.truncated, maxRows, mapping: m,
       accepted: v?.accepted.length ?? 0, rejected: v?.rejected.slice(0, 1000) ?? [], rejectedCount: v?.rejected.length ?? 0, duplicates: v?.duplicates ?? 0,
@@ -115,9 +114,8 @@ export async function commitImportAction(_: ActionState, fd: FormData): Promise<
     const { sheet, name } = await readUpload(fd);
     filename = name;
     const m = mappingFrom(fd, guessMapping(sheet.headers));
-    const [col] = await withCtx(ctx, (tx) => tx`select email_domains from colleges where id = ${e.college_id}`);
     let v: ReturnType<typeof validateRows>;
-    try { v = validateRows(sheet, m, col.email_domains); } catch (err) { if (err instanceof ImportError) throw new UserError(err.message); throw err; }
+    try { v = validateRows(sheet, m); } catch (err) { if (err instanceof ImportError) throw new UserError(err.message); throw err; }
     if (v.accepted.length === 0) throw new UserError("No valid rows to import. Fix the file and try again.");
     const r = await E.commitImport(ctx, a, e.id, name, v, { ...m, headers: sheet.headers });
     refresh(e);
@@ -132,9 +130,6 @@ export async function addVoterAction(_: ActionState, fd: FormData): Promise<Acti
     const { ctx, e, a } = await scope(str(fd, "election_id"));
     const email = normalizeEmail(str(fd, "email"));
     if (!email) throw new UserError("Enter a valid email address.");
-    const [col] = await withCtx(ctx, (tx) => tx`select email_domains from colleges where id = ${e.college_id}`);
-    const { domainAllowed } = await import("@/lib/email-normalize");
-    if (!domainAllowed(email, col.email_domains)) throw new UserError(`Use an approved college domain: ${col.email_domains.join(", ")}.`);
     await E.addVoter(ctx, a, e.id, email, optStr(fd, "name"), optStr(fd, "student_id"), optStr(fd, "voter_group"));
     refresh(e);
     return { ok: true, message: `${email} added.` };

@@ -26,14 +26,12 @@ const collegeSchema = z.object({
   name: z.string().trim().min(2, "College name is required.").max(160),
   short_name: z.string().trim().max(40).optional(),
   city: z.string().trim().max(80).optional(),
-  email_domains: z.array(z.string().regex(/^[a-z0-9.-]+\.[a-z]{2,}$/, "Email domains must look like college.edu")).max(10),
   default_retention_days: z.coerce.number().int(),
 });
 
 function parseCollege(fd: FormData) {
-  const domains = str(fd, "email_domains").toLowerCase().split(/[\s,]+/).map((d) => d.replace(/^@/, "")).filter(Boolean);
   return collegeSchema.parse({ code: str(fd, "code"), name: str(fd, "name"), short_name: str(fd, "short_name") || undefined, city: str(fd, "city") || undefined,
-    email_domains: domains, default_retention_days: str(fd, "default_retention_days") || 30 });
+    default_retention_days: str(fd, "default_retention_days") || 30 });
 }
 
 export async function createCollegeAction(_: ActionState, fd: FormData): Promise<ActionState> {
@@ -46,8 +44,8 @@ export async function createCollegeAction(_: ActionState, fd: FormData): Promise
     id = await withCtx(ctx, async (tx) => {
       const [dup] = await tx`select 1 from colleges where code = ${c.code}`;
       if (dup) throw new UserError("That college code is already in use.");
-      const [r] = await tx`insert into colleges (code, name, short_name, city, email_domains, default_retention_days)
-                           values (${c.code}, ${c.name}, ${c.short_name ?? null}, ${c.city ?? null}, ${c.email_domains}, ${c.default_retention_days}) returning id`;
+      const [r] = await tx`insert into colleges (code, name, short_name, city, default_retention_days)
+                           values (${c.code}, ${c.name}, ${c.short_name ?? null}, ${c.city ?? null}, ${c.default_retention_days}) returning id`;
       await audit({ actorId: a.id, actorLabel: a.label, collegeId: r.id, action: "college.create", target: c.name, details: { code: c.code }, ipHash: a.ipHash }, tx);
       return r.id as string;
     });
@@ -68,7 +66,7 @@ export async function updateCollegeAction(_: ActionState, fd: FormData): Promise
       const [dup] = await tx`select 1 from colleges where code = ${c.code} and id <> ${id}`;
       if (dup) throw new UserError("That college code is already in use.");
       await tx`update colleges set code = ${c.code}, name = ${c.name}, short_name = ${c.short_name ?? null}, city = ${c.city ?? null},
-                 email_domains = ${c.email_domains}, default_retention_days = ${c.default_retention_days} where id = ${id}`;
+                 email_domains = '{}', default_retention_days = ${c.default_retention_days} where id = ${id}`;
       if (logo) await tx`update colleges set logo = ${logo.bytes}, logo_mime = ${logo.mime} where id = ${id}`;
       if (bool(fd, "remove_logo")) await tx`update colleges set logo = null, logo_mime = null where id = ${id}`;
       await audit({ actorId: a.id, actorLabel: a.label, collegeId: id, action: "college.update", target: c.name, ipHash: a.ipHash }, tx);

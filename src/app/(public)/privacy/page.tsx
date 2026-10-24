@@ -27,7 +27,7 @@ export default function Privacy() {
           <ul>
             <li>This is privacy enforced by database design and access controls — <strong>not</strong> a cryptographic anonymous-voting protocol. Someone with full, direct database-server access and deep forensic tooling could attempt to correlate records by physical storage order. We document this risk rather than hide it.</li>
             <li>With very few voters, totals themselves can reveal choices (e.g. if only one person voted). Administrators are warned about live tallies for small electorates.</li>
-            <li>Verification uses your college email and student ID. Anyone who knows both could try to vote as you — keep your student ID private during elections. It also can't prove nobody is pressuring you. Vote somewhere private.</li>
+            <li>Verification uses your registered email and student ID. Anyone who knows both could try to vote as you — keep your student ID private during elections. It also can't prove nobody is pressuring you. Vote somewhere private.</li>
             <li>An election may be configured as an <strong>open ballot</strong>, where choices are linked to voters. You'll always be told clearly before voting.</li>
           </ul>
           <h2>How long data is kept</h2>

@@ -6,7 +6,6 @@ import { VerifyFlow } from "@/components/verify-flow";
 import { Notice } from "@/components/ui";
 import { maintenanceScreen } from "@/components/maintenance";
 import { isTestMode } from "@/lib/env";
-import { withCtx, systemCtx } from "@/lib/db";
 import { verifyVoterAction } from "../../actions";
 
 export const dynamic = "force-dynamic";
@@ -19,15 +18,14 @@ export default async function Verify({ params, searchParams }: { params: Promise
   if (!e) notFound();
   if (e.effective !== "open") redirect(`/e/${slug}`);
   if (await getVoterSession(slug)) redirect(`/e/${slug}/ballot`);
-  const [col] = await withCtx(systemCtx, (tx) => tx`select email_domains from colleges where id = ${e.college_id}`);
   return (
     <VoterShell college={e.college_name} collegeId={e.college_id} hasLogo={e.has_logo} slug={slug}>
       <Link href={`/e/${slug}`} className="text-sm text-g500 hover:text-ink">← {e.title}</Link>
       <h1 className="mt-4 text-[2rem] font-semibold leading-tight">Verify it's you</h1>
-      <p className="mt-2 text-g600">Enter your college email and student ID. Both must match your college's voter list.</p>
+      <p className="mt-2 text-g600">Enter the email your college registered for you and your student ID. Only students on the uploaded voter list can vote.</p>
       {sp.expired && <Notice tone="warning" className="mt-5">Your voting session expired. Verify again to continue — anything you already submitted is safe.</Notice>}
       {isTestMode() && <Notice tone="info" className="mt-5" title="Test mode">Try <span className="font-mono">student001@northfield.test</span> with student ID <span className="font-mono">T0001</span> (student002 → T0002, and so on).</Notice>}
-      <div className="mt-6"><VerifyFlow slug={slug} verifyAction={verifyVoterAction} domains={col.email_domains} /></div>
+      <div className="mt-6"><VerifyFlow slug={slug} verifyAction={verifyVoterAction} /></div>
     </VoterShell>
   );
 }

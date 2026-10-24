@@ -18,7 +18,7 @@ async function voterXlsx() {
   ws.addRow(["ROLL6", "Dup", "VOTER1@e2e-college.test", "CSE"]);   // duplicate (case-insensitive)
   ws.addRow(["ROLL7", "Bad", "not-an-email", "CSE"]);               // invalid
   ws.addRow(["ROLL8", "Missing", "", "CSE"]);                       // missing
-  ws.addRow(["ROLL9", "Outsider", "someone@gmail.com", "CSE"]);     // wrong domain
+  ws.addRow(["ROLL9", "Gmail User", "someone@gmail.com", "CSE"]);   // any email provider is allowed
   return Buffer.from(await wb.xlsx.writeBuffer());
 }
 
@@ -38,7 +38,6 @@ test("1–2. Developer creates a college and invites an administrator", async ({
   await page.goto("/platform/colleges/new");
   await page.fill("#name", `E2E Test College ${run}`);
   await page.fill("#code", `E2E-${run}`);
-  await page.fill("#email_domains", "e2e-college.test");
   await page.getByRole("button", { name: "Create college" }).click();
   await page.waitForURL(/\/platform\/colleges\/[0-9a-f-]{36}\?created=1/);
   collegePath = new URL(page.url()).pathname;
@@ -76,10 +75,10 @@ test("3–7. Administrator builds the election and opens it", async ({ page }) =
   await page.setInputFiles("#file", { name: "voters.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: await voterXlsx() });
   await page.getByRole("button", { name: "Preview import" }).click();
   await expect(page.getByText("ready to import")).toBeVisible();
-  await expect(page.locator("text=ready to import").locator("..")).toContainText("5");
+  await expect(page.locator("text=ready to import").locator("..")).toContainText("6");
   await expect(page.locator("#map_email")).toHaveValue("2");
-  await page.getByRole("button", { name: "Import 5 voters" }).click();
-  await expect(page.getByText(/Imported 5 voter\(s\)\. 0 already on the list, 4 rejected/)).toBeVisible();
+  await page.getByRole("button", { name: "Import 6 voters" }).click();
+  await expect(page.getByText(/Imported 6 voter\(s\)\. 0 already on the list, 3 rejected/)).toBeVisible();
 
   // 5–6. Positions and candidates.
   await page.goto(electionPath + "/positions");
@@ -201,7 +200,7 @@ test("14–17. Close, review, publish, export — results match accepted ballots
   await page.goto(electionPath + "/results");
   await expect(page.getByText("All passed")).toBeVisible();
   const chair = page.locator("section").filter({ has: page.getByRole("heading", { name: "Chairman", exact: true }) });
-  await expect(chair).toContainText("2 of 5 eligible voted");
+  await expect(chair).toContainText("2 of 6 eligible voted");
   await expect(chair).toContainText("Asha Kumar");
   await expect(chair.getByText("2 · 100.0%")).toBeVisible();
   await expect(chair.getByText("0 · 0.0%")).toBeVisible(); // Bilal: the duplicate attempt was not counted
@@ -233,7 +232,7 @@ test("14–17. Close, review, publish, export — results match accepted ballots
   expect(byName["Chitra Das"][9]).toBe("Tie");
   expect(String(byName["Asha Kumar"][11])).toMatch(/^Published/);
   const summary = wb.getWorksheet("Summary")!.getSheetValues() as unknown[][];
-  expect(summary.find((r) => r?.[1] === "Eligible voters")?.[2]).toBe(5);
+  expect(summary.find((r) => r?.[1] === "Eligible voters")?.[2]).toBe(6);
   const [csv] = await Promise.all([page.waitForEvent("download"), page.locator("a[href$='/candidates.csv']").click()]);
   expect(csv.suggestedFilename()).toMatch(/candidate-results\.csv$/);
 });
@@ -248,7 +247,7 @@ test("18. Retention cleanup deletes personal data and keeps the public aggregate
   await dlg.locator("input[autocomplete=off]").fill(publicRef);
   await dlg.getByRole("button", { name: "Delete permanently" }).click();
   await expect(page.locator("tr", { hasText: publicRef }).filter({ hasText: "verified" })).toBeVisible();
-  await expect(page.locator("tr", { hasText: publicRef }).filter({ hasText: "verified" }).filter({ hasText: "voters:5" })).toBeVisible();
+  await expect(page.locator("tr", { hasText: publicRef }).filter({ hasText: "verified" }).filter({ hasText: "voters:6" })).toBeVisible();
 
   const pub = await page.context().newPage();
   await pub.goto(`/r/${publicRef}`);

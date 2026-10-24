@@ -1,5 +1,5 @@
 import * as XLSX from "@e965/xlsx";
-import { normalizeEmail, domainAllowed, normalizeStudentId } from "./email-normalize";
+import { normalizeEmail, normalizeStudentId } from "./email-normalize";
 
 export type Mapping = { email: number; name?: number | null; studentId?: number | null; group?: number | null };
 export type ParsedSheet = { headers: string[]; rows: string[][]; sheetName: string; truncated: boolean };
@@ -61,7 +61,7 @@ export function guessMapping(headers: string[]): Partial<Mapping> {
   };
 }
 
-export function validateRows(sheet: ParsedSheet, m: Mapping, allowedDomains: string[]): ValidatedImport {
+export function validateRows(sheet: ParsedSheet, m: Mapping): ValidatedImport {
   if (m.email == null || m.email < 0 || m.email >= sheet.headers.length) throw new ImportError("Choose which column contains email addresses.");
   if (m.studentId == null || m.studentId < 0 || m.studentId >= sheet.headers.length) throw new ImportError("Choose which column contains student IDs — students verify with their email and student ID.");
   const seen = new Set<string>();
@@ -74,7 +74,6 @@ export function validateRows(sheet: ParsedSheet, m: Mapping, allowedDomains: str
     if (!rawEmail) { out.rejected.push({ row, reason: "Missing email address", raw }); return; }
     const email = normalizeEmail(rawEmail);
     if (!email) { out.rejected.push({ row, reason: "Invalid email format", raw }); return; }
-    if (!domainAllowed(email, allowedDomains)) { out.rejected.push({ row, reason: `Email domain is not an approved college domain (${allowedDomains.join(", ")})`, raw }); return; }
     if (seen.has(email)) { out.duplicates++; out.rejected.push({ row, reason: "Duplicate of an earlier row", raw }); return; }
     const sid = normalizeStudentId(r[m.studentId!]);
     if (!sid) { out.rejected.push({ row, reason: "Missing student ID", raw }); return; }

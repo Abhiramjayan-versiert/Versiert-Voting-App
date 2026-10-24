@@ -4,7 +4,7 @@ import { ButtonLink } from "@/components/ui";
 
 const steps = [
   { n: "01", t: "Open your election link", d: "Your election administrator shares a link. No app store, no new account." },
-  { n: "02", t: "Verify it's you", d: "Enter your college email and student ID. Both must match the voter list your college uploaded." },
+  { n: "02", t: "Verify it's you", d: "Enter your registered email and student ID. Both must match the voter list your college uploaded." },
   { n: "03", t: "Choose, review, submit", d: "One vote per position. Review everything before you submit — then it's final." },
 ];
 

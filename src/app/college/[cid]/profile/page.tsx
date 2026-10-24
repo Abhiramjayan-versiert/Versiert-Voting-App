@@ -6,11 +6,11 @@ export const metadata = { title: "College profile" };
 export default async function Profile({ params }: { params: Promise<{ cid: string }> }) {
   const { cid } = await params;
   const { ctx } = await requireCollegeAdmin(cid);
-  const [c] = await withCtx(ctx, (tx) => tx`select code, name, short_name, city, email_domains, default_retention_days, status, (logo is not null) as has_logo from colleges where id = ${cid}`);
+  const [c] = await withCtx(ctx, (tx) => tx`select code, name, short_name, city, default_retention_days, status, (logo is not null) as has_logo from colleges where id = ${cid}`);
   const admins = await withCtx(ctx, (tx) => tx`select u.name, u.email, u.status from college_admins ca join users u on u.id = ca.user_id where ca.college_id = ${cid} order by u.name`);
   return (
     <>
-      <PageHeader eyebrow="College" title={c.name} description="College details are managed by the platform administrator. Contact them to change domains, logo or retention defaults." />
+      <PageHeader eyebrow="College" title={c.name} description="College details are managed by the platform administrator. Contact them to change the logo or retention defaults." />
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           {c.has_logo && <img src={`/media/logo/${cid}`} alt={`${c.name} logo`} className="mb-4 h-16 rounded-lg object-contain" />}
@@ -18,7 +18,6 @@ export default async function Profile({ params }: { params: Promise<{ cid: strin
             <dt className="text-g500">Code</dt><dd className="font-mono">{c.code}</dd>
             <dt className="text-g500">Short name</dt><dd>{c.short_name ?? "—"}</dd>
             <dt className="text-g500">City</dt><dd>{c.city ?? "—"}</dd>
-            <dt className="text-g500">Approved email domains</dt><dd>{c.email_domains.length ? c.email_domains.join(", ") : "Any"}</dd>
             <dt className="text-g500">Default retention</dt><dd>{c.default_retention_days} days after publication</dd>
           </dl>
         </Card>

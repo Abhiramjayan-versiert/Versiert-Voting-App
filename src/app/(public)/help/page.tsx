@@ -3,9 +3,9 @@ import { Prose } from "@/components/prose";
 
 export const metadata = { title: "Student help" };
 const faq: [string, React.ReactNode][] = [
-  ["Do I need an account?", "No. Open the election link and enter your official college email and student ID."],
-  ["It says my details couldn't be verified.", "Check that you used the exact college email your college registered and your student ID as it appears on college records (spaces and capitals don't matter). For privacy we can't say which part didn't match — contact your election administrator. After several wrong tries the email is locked for an hour."],
-  ["Can someone vote for me?", "Only someone who knows both your college email and your student ID. Keep your student ID private during the election, and tell your election administrator immediately if you think someone voted as you — they can record an incident."],
+  ["Do I need an account?", "No. Open the election link and enter the email your college registered for you, plus your student ID."],
+  ["It says my details couldn't be verified.", "Check that you used the exact email your college registered and your student ID as it appears on college records (spaces and capitals don't matter). For privacy we can't say which part didn't match — contact your election administrator. After several wrong tries the email is locked for an hour."],
+  ["Can someone vote for me?", "Only someone who knows both your registered email and your student ID. Keep your student ID private during the election, and tell your election administrator immediately if you think someone voted as you — they can record an incident."],
   ["How many times can I vote?", "Once per position. If an election has four positions, you can vote once for each. You can do them in one go, or vote for some now and the rest later while voting is open."],
   ["Can I change my vote?", "You can change your selections as often as you like before you press Submit. After submission, choices for those positions are final."],
   ["What if I press Submit twice or my connection drops?", "It's safe to retry. Each ballot carries a unique key and the database accepts at most one vote per position for you, so a vote can never be counted twice."],
