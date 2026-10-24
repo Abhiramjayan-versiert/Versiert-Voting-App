@@ -206,7 +206,7 @@ export function Progress({ value, label, dark }: { value: number; label: string;
 }
 
 /** Accessible horizontal bar chart; the same data is available as text for screen readers. */
-export function Bars({ items, label, dark }: { items: { label: string; value: number; pct: number; highlight?: boolean; note?: string }[]; label: string; dark?: boolean }) {
+export function Bars({ items, label, dark, hideValues }: { items: { label: string; value: number; pct: number; highlight?: boolean; note?: string }[]; label: string; dark?: boolean; hideValues?: boolean }) {
   return (
     <figure aria-label={label} className="space-y-3">
       {items.map((it) => (
@@ -215,10 +215,10 @@ export function Bars({ items, label, dark }: { items: { label: string; value: nu
             <span className={cx("font-medium truncate", it.highlight && "flex items-center gap-2")}>
               {it.label}{it.note && <span className={cx("text-[0.72rem] font-medium rounded-full px-2 py-0.5", it.note === "Tie" ? "bg-warn-soft text-warn" : dark ? "bg-lime text-ink" : "bg-ink text-lime")}>{it.note}</span>}
             </span>
-            <span className={cx("tabular shrink-0", dark ? "text-g300" : "text-g600")}>{it.value.toLocaleString("en-IN")} · {it.pct.toFixed(1)}%</span>
+            <span className={cx("tabular shrink-0", dark ? "text-g300" : "text-g600")}>{hideValues ? "" : `${it.value.toLocaleString("en-IN")} · `}{it.pct.toFixed(1)}%</span>
           </div>
           <div className={cx("mt-1.5 h-2.5 rounded-full", dark ? "bg-g800" : "bg-g100")} aria-hidden>
-            <div className={cx("h-full rounded-full", it.highlight ? "bg-lime" : dark ? "bg-g500" : "bg-g400")} style={{ width: `${Math.max(it.pct, it.value ? 1 : 0)}%` }} />
+            <div className={cx("h-full rounded-full", it.highlight ? "bg-lime" : dark ? "bg-g500" : "bg-g400")} style={{ width: `${Math.max(it.pct, it.pct > 0 ? 1 : 0)}%` }} />
           </div>
         </div>
       ))}

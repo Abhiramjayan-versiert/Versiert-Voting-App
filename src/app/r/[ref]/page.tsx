@@ -6,7 +6,7 @@ import { CopyButton, PrintButton } from "@/components/forms";
 import { ResultsView } from "@/components/results-view";
 import { CORRECTION_WINDOW_HOURS } from "@/lib/jobs";
 import { env } from "@/lib/env";
-import type { ElectionResult } from "@/lib/results";
+import { percentOnlyResult, type ElectionResult } from "@/lib/results";
 
 export const dynamic = "force-dynamic";
 
@@ -49,18 +49,15 @@ export default async function PublicResults({ params }: { params: Promise<{ ref:
           <span className="text-sm text-g500">Published {fmtDate(row.published_at ?? row.created_at, row.timezone)} · voting closed {fmtDate(d.closed_at, row.timezone)}</span>
         </div>
         {!final && <p className="mt-3 text-sm text-g600">These results become final on {fmtDate(correctionEnds, row.timezone)} unless the election administrators issue a correction.</p>}
-        <div className="mt-8 grid grid-cols-3 gap-3">
-          <Stat label="Eligible voters" value={d.results.eligibleVoters.toLocaleString("en-IN")} />
-          <Stat label="Voted" value={d.results.participatingVoters.toLocaleString("en-IN")} />
-          <Stat accent label="Turnout" value={`${d.results.turnoutPct.toFixed(1)}%`} />
+        <div className="mt-8 grid grid-cols-1 gap-3 sm:max-w-xs">
+          <Stat accent label="Overall polling rate" value={`${d.results.turnoutPct.toFixed(1)}%`} />
         </div>
-        <div className="mt-8"><ResultsView r={d.results} /></div>
+        <div className="mt-8"><ResultsView r={percentOnlyResult(d.results)} percentOnly /></div>
         <section className="mt-10 rounded-2xl bg-g50 p-5 text-sm text-g600">
           <h2 className="font-semibold text-ink">About these results</h2>
-          <p className="mt-2">Only accepted ballots are counted — at most one per eligible voter per position. Percentages are shares of valid candidate votes for each position. Abstentions are reported separately. Ties are shown as ties; the college resolves them under its own rules.</p>
+          <p className="mt-2">Only accepted ballots are counted — at most one per eligible voter per position. Percentages are shares of valid candidate votes for each position; abstentions are excluded. Ties are shown as ties; the college resolves them under its own rules.</p>
           <p className="mt-2">Integrity checks at publication: {d.integrity.every((i) => i.ok) ? "all passed" : "see administrators"}. Snapshot fingerprint <span className="break-all font-mono text-xs">{row.data_hash}</span>.</p>
           <p className="mt-2"><span className="font-medium text-ink">Verify your own vote:</span> enter the VC- verification code you received after voting at <Link href="/receipt" className="underline">/receipt</Link> to see exactly how your ballot was recorded.</p>
-          {row.status !== "deleted" && <p className="mt-2"><span className="font-medium text-ink">Recount it yourself:</span> <a href={`/r/${ref}/ballots`} className="underline">download every ballot</a> as an anonymous list (verification code and choices, no names or emails).</p>}
           <p className="mt-2"><Link href="/privacy" className="underline">How V.app protects voters</Link></p>
         </section>
       </main>

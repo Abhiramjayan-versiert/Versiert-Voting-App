@@ -39,6 +39,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ eid: str
     return send(toCsv(["Row", "Reason", ...cols], rows.map((r) => [r.row_number, r.reason, ...cols.map((c) => r.raw[c] ?? "")])), `${base}-rejected-rows.csv`, "text/csv; charset=utf-8");
   }
 
+  if (kind === "ballots.csv") {
+    if (!published) return NextResponse.json({ error: "Available after results are published." }, { status: 409 });
+    const rows = await withCtx(auth.ctx, (tx) => tx`select * from ballot.bulletin(${eid})`);
+    await log(kind);
+    return send(toCsv(["Verification code", "Position", "Choice"], rows.map((r) => [r.check_code, r.position_name, r.candidate_name])), `${base}-anonymous-ballots.csv`, "text/csv; charset=utf-8");
+  }
+
   if (kind === "audit.csv") {
     const rows = await withCtx(auth.ctx, (tx) => tx`select id, at, actor_label, action, target, details, hash from audit_events where election_id = ${eid} order by id`);
     await log(kind);

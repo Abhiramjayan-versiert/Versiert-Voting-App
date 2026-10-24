@@ -112,7 +112,7 @@ V.app does **not** claim mathematically guaranteed anonymity or end-to-end verif
 
 - Before submitting, the voter's browser generates a random code `VC-XXXX-XXXX-XXXX` (31-symbol alphabet, ~59 bits). It is sent with the ballot and set for that one transaction only (`set_config('ballot.check_code', …, true)`); the `ballot.selections.check_code` column default records it on the anonymous selection rows. It is **never** written to `vote_submissions`, `participations`, sessions, logs or the audit trail, so the database still cannot link a ballot to a voter (integration test: *the code is stored only with the anonymous selections*).
 - The code is shown once on the confirmation screen. At `/receipt` anyone holding it sees exactly the choices recorded under it (`ballot.check_lookup`).
-- After publication, `/r/<ref>/ballots` serves the full anonymous list (code, position, choice) produced by `ballot.bulletin`, so anyone can recount; it returns nothing before publication. Rows are ordered by the random code, never by time.
+- After publication, administrators can export the full anonymous list (code, position, choice) produced by `ballot.bulletin` (Exports → Anonymous ballot list) for a recount; it returns nothing before publication. Rows are ordered by the random code, never by time. It is not public, because the public results page deliberately shows percentages only.
 - Trade-off: a voter can *show* their code to someone else, which proves how they voted (the scheme is not coercion-resistant). The confirmation screen warns voters to keep the code private.
 - Super Admin can watch live aggregate tallies of any running election (totals only) regardless of the per-election "live results" setting.
 

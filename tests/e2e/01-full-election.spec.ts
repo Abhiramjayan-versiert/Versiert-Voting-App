@@ -227,8 +227,15 @@ test("14–17. Close, review, publish, export — results match accepted ballots
   await expect(pub.getByText("Winner: Asha Kumar")).toBeVisible();
   await expect(pub.getByText(/Tie — needs resolution/)).toBeVisible();
   expect(await pub.content()).not.toContain("voter1@e2e-college.test");
-  // Anyone can download the anonymous ballot list and recount; it contains codes and choices only.
-  const bl = await pub.request.get(`/r/${publicRef}/ballots`);
+  // The public page shows percentages, outcomes and the polling rate — never absolute vote counts.
+  await expect(pub.getByText("Overall polling rate")).toBeVisible();
+  await expect(pub.getByText("Turnout 33.3%").first()).toBeVisible();
+  const html = await pub.content();
+  expect(html).not.toMatch(/of 6 eligible|Eligible voters|>Voted<|2 · 100|Show as table/);
+  expect(html).not.toMatch(/"votes":[1-9]|"eligibleVoters":[1-9]|"participants":[1-9]/); // nothing leaks into page data
+  expect((await pub.request.get(`/r/${publicRef}/ballots`)).status()).toBe(404);
+  // Administrators can still download the anonymous ballot list for a recount.
+  const bl = await page.request.get(`/api/exports/${electionPath.split("/elections/")[1]}/ballots.csv`);
   expect(bl.status()).toBe(200);
   const text = await bl.text();
   expect(text).toContain(`${checkCode},Chairman,Asha Kumar`);

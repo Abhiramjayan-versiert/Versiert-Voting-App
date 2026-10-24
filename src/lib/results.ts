@@ -87,3 +87,14 @@ export function computeResults(input: {
     positions,
   };
 }
+
+/** Public view: keeps percentages, outcomes and turnout %, drops every absolute count so none reaches the browser. */
+export function percentOnlyResult(r: ElectionResult): ElectionResult {
+  return {
+    eligibleVoters: 0, participatingVoters: 0, turnoutPct: r.turnoutPct,
+    positions: r.positions.map((p) => ({
+      ...p, eligible: 0, participants: 0, abstentions: 0, candidateVotes: 0,
+      candidates: p.candidates.map((c) => ({ ...c, votes: 0 })),
+    })),
+  };
+}
