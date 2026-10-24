@@ -7,18 +7,20 @@ import { ActionForm, SubmitButton, Confirm, CopyButton, PrintButton } from "@/co
 import { ResultsView } from "@/components/results-view";
 import { lifecycleAction } from "@/app/college/actions";
 import { env } from "@/lib/env";
+import { AutoRefresh } from "@/components/auto-refresh";
 
 export const metadata = { title: "Results" };
 export default async function Results({ params }: { params: Promise<{ cid: string; eid: string }> }) {
   const { cid, eid } = await params;
   const { ctx, e } = await loadElection(cid, eid);
   const st = e.effective as string;
-  if (["draft", "scheduled"].includes(st)) return <Notice tone="info">Results will appear here once voting has started{e.admin_live_results ? "" : " and closed"}.</Notice>;
+  if (["draft", "scheduled"].includes(st)) return <Notice tone="info">Results will appear here once voting has started{e.admin_live_results || ctx.role === "super_admin" ? "" : " and closed"}.</Notice>;
   if (st === "deleted") {
     const [snap] = await withCtx(ctx, (tx) => tx`select data, created_at from result_snapshots where election_id = ${eid} order by created_at desc limit 1`);
     return snap ? <><Notice tone="info" className="mb-5">Election data has been deleted. This is the retained published snapshot.</Notice><ResultsView r={snap.data.results} /></> : <Notice tone="info">This election's data and results were deleted under its retention policy.</Notice>;
   }
-  if ((st === "open" || st === "paused") && !e.admin_live_results) return <Notice tone="info">Live tallies are off for this election. Results appear after voting closes.</Notice>;
+  // Super Admin can always watch the live aggregate tally (totals only — individual ballots stay secret).
+  if ((st === "open" || st === "paused") && !e.admin_live_results && ctx.role !== "super_admin") return <Notice tone="info">Live tallies are off for this election. Results appear after voting closes.</Notice>;
   const d = await withCtx(ctx, async (tx) => ({
     r: await computeElection(eid, tx),
     integrity: ["results_pending", "published", "retention"].includes(st) ? await integrityReport(eid, tx) : null,
@@ -31,6 +33,7 @@ export default async function Results({ params }: { params: Promise<{ cid: strin
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Badge tone={published ? "published" : "results_pending"}>{published ? `Published ${fmtDate(e.published_at, e.timezone)}` : st === "results_pending" ? "Provisional — awaiting your review" : "Provisional — voting in progress"}</Badge>
+        {(st === "open" || st === "paused") && <AutoRefresh seconds={15} />}
         <div className="flex gap-2">{published && <><CopyButton text={link} label="Copy public link" /><ButtonLink href={`/r/${e.public_ref}`} variant="outline" size="sm">Open public page</ButtonLink></>}<PrintButton /></div>
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">

@@ -12,6 +12,8 @@ export const runtime = "nodejs";
 
 const body = z.object({
   idempotencyKey: z.string().min(16).max(100).regex(/^[A-Za-z0-9-]+$/),
+  // Random code made in the voter's browser; stored only with the anonymous selections (see migration 0010).
+  checkCode: z.string().regex(/^VC-[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}$/).optional(),
   choices: z.array(z.object({ position_id: z.string().uuid(), candidate_ids: z.array(z.string().uuid()).max(20) })).min(1).max(100),
 });
 
@@ -47,7 +49,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
   catch { return NextResponse.json({ error: "Your ballot could not be read. Nothing was recorded — reload and try again." }, { status: 400 }); }
 
   try {
-    const [row] = await sql()`select ballot.cast_votes(${session.tokenHash}, ${parsed.idempotencyKey}, ${sql().json(parsed.choices as never)}) as r`;
+    const [row] = await sql().begin(async (tx) => {
+      await tx`select set_config('ballot.check_code', ${parsed.checkCode ?? ""}, true)`;
+      return tx`select ballot.cast_votes(${session.tokenHash}, ${parsed.idempotencyKey}, ${tx.json(parsed.choices as never)}) as r`;
+    });
     const r = row.r as { receipt: string | null; replayed: boolean; positions: { position_id: string; status: string }[] };
     const dup = r.positions.filter((p) => p.status === "already_voted");
     if (dup.length && !r.replayed) {

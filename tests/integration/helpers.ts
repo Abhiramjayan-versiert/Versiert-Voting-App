@@ -55,6 +55,15 @@ export async function cast(sessionHash: string, choices: { position_id: string; 
   return r.r as { receipt: string | null; replayed: boolean; positions: { position_id: string; status: string }[] };
 }
 
+/** Casts with a vote verification code, exactly as the submit route does (transaction-local setting). */
+export async function castWithCode(sessionHash: string, choices: { position_id: string; candidate_ids: string[] }[], code: string, idem = randomUUID()) {
+  const [r] = await appDb().begin(async (tx) => {
+    await tx`select set_config('ballot.check_code', ${code}, true)`;
+    return tx`select ballot.cast_votes(${sessionHash}, ${idem}, ${tx.json(choices as never)}) as r`;
+  });
+  return r.r as { receipt: string | null; replayed: boolean; positions: { position_id: string; status: string }[] };
+}
+
 export async function castError(sessionHash: string, choices: unknown, idem = randomUUID()) {
   try { await appDb()`select ballot.cast_votes(${sessionHash}, ${idem}, ${appDb().json(choices as never)})`; return "NO_ERROR"; }
   catch (e) { return (e as Error).message; }

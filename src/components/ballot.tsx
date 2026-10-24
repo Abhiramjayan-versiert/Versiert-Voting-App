@@ -28,6 +28,20 @@ export function Ballot({ slug, title, closesLabel, allowAbstain, requireAll, pos
     if (!v) { v = crypto.randomUUID() + crypto.randomUUID().slice(0, 8); sessionStorage.setItem(k, v); }
     return v;
   }, [slug, preview]);
+  // Verification code: lives only in this browser and next to the anonymous ballot, never with the voter.
+  const checkCode = useMemo(() => {
+    if (typeof window === "undefined" || preview) return undefined;
+    const k = `vapp-check-${slug}`;
+    let v = sessionStorage.getItem(k);
+    if (!v) {
+      const A = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+      const b = crypto.getRandomValues(new Uint32Array(12));
+      const c = Array.from(b, (x) => A[x % A.length]).join("");
+      v = `VC-${c.slice(0, 4)}-${c.slice(4, 8)}-${c.slice(8)}`;
+      sessionStorage.setItem(k, v);
+    }
+    return v;
+  }, [slug, preview]);
 
   useEffect(() => { heading.current?.focus(); }, [step]);
   useEffect(() => { if (confirming) dlg.current?.showModal(); else dlg.current?.close(); }, [confirming]);
@@ -54,7 +68,7 @@ export function Ballot({ slug, title, closesLabel, allowAbstain, requireAll, pos
     setSubmitting(true); setError(null);
     const choices = answered.map((p) => ({ position_id: p.id, candidate_ids: sel[p.id] === "abstain" ? [] : chosen(p.id) }));
     try {
-      const res = await fetch(`/e/${slug}/submit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ idempotencyKey: idemKey, choices }) });
+      const res = await fetch(`/e/${slug}/submit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ idempotencyKey: idemKey, checkCode, choices }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(data.error ?? "Your ballot could not be submitted. Nothing was recorded — please try again.");
@@ -62,7 +76,8 @@ export function Ballot({ slug, title, closesLabel, allowAbstain, requireAll, pos
         setSubmitting(false); setConfirming(false); return;
       }
       sessionStorage.removeItem(`vapp-idem-${slug}`);
-      sessionStorage.setItem(`vapp-receipt-${slug}`, JSON.stringify(data));
+      sessionStorage.removeItem(`vapp-check-${slug}`);
+      sessionStorage.setItem(`vapp-receipt-${slug}`, JSON.stringify({ ...data, checkCode: data.accepted > 0 ? checkCode : null }));
       router.replace(`/e/${slug}/done`);
     } catch {
       // Network failure: the same idempotency key makes a retry safe — it can never create a second ballot.

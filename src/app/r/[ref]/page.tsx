@@ -59,6 +59,8 @@ export default async function PublicResults({ params }: { params: Promise<{ ref:
           <h2 className="font-semibold text-ink">About these results</h2>
           <p className="mt-2">Only accepted ballots are counted — at most one per eligible voter per position. Percentages are shares of valid candidate votes for each position. Abstentions are reported separately. Ties are shown as ties; the college resolves them under its own rules.</p>
           <p className="mt-2">Integrity checks at publication: {d.integrity.every((i) => i.ok) ? "all passed" : "see administrators"}. Snapshot fingerprint <span className="break-all font-mono text-xs">{row.data_hash}</span>.</p>
+          <p className="mt-2"><span className="font-medium text-ink">Verify your own vote:</span> enter the VC- verification code you received after voting at <Link href="/receipt" className="underline">/receipt</Link> to see exactly how your ballot was recorded.</p>
+          {row.status !== "deleted" && <p className="mt-2"><span className="font-medium text-ink">Recount it yourself:</span> <a href={`/r/${ref}/ballots`} className="underline">download every ballot</a> as an anonymous list (verification code and choices, no names or emails).</p>}
           <p className="mt-2"><Link href="/privacy" className="underline">How V.app protects voters</Link></p>
         </section>
       </main>

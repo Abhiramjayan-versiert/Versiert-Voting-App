@@ -1,6 +1,6 @@
 import { describe, it, expect, afterAll } from "vitest";
 import { randomUUID } from "node:crypto";
-import { makeElection, session, cast, castError, tally, ownerDb, appDb, closeDbs } from "./helpers";
+import { makeElection, session, cast, castWithCode, castError, tally, ownerDb, appDb, closeDbs } from "./helpers";
 
 afterAll(closeDbs);
 
@@ -146,12 +146,53 @@ describe("server-side ballot validation", () => {
   });
 });
 
+describe("voter-verifiable secret ballots (verification codes)", () => {
+  it("a voter can look up exactly how their ballot was recorded with their code", async () => {
+    const f = await makeElection({ positions: [{ name: "President", cands: 2 }, { name: "Secretary", cands: 2 }], abstain: true });
+    const code = "VC-ABCD-EFGH-JK23";
+    const r = await castWithCode(await session(f, 0), [
+      { position_id: f.positions[0].id, candidate_ids: [f.positions[0].cands[1]] },
+      { position_id: f.positions[1].id, candidate_ids: [] },
+    ], code);
+    expect(r.receipt).toMatch(/^VA-/);
+    const rows = await appDb()`select * from ballot.check_lookup(${code})`;
+    expect(rows.map((x) => [x.position_name, x.candidate_name])).toEqual([["President", "President Candidate 2"], ["Secretary", "(abstained)"]]);
+    expect(await appDb()`select * from ballot.check_lookup(${"VC-ZZZZ-ZZZZ-ZZZZ"})`).toHaveLength(0);
+  });
+  it("the code is stored only with the anonymous selections, never with the voter", async () => {
+    const f = await makeElection();
+    const code = "VC-MNPQ-RSTU-VW45";
+    await castWithCode(await session(f, 0), [{ position_id: f.positions[0].id, candidate_ids: [f.positions[0].cands[0]] }], code);
+    const [sel] = await ownerDb()`select voter_ref, check_code from ballot.selections where election_id = ${f.electionId}`;
+    expect(sel).toEqual({ voter_ref: null, check_code: code });
+    const [hit] = await ownerDb()`
+      select (select count(*) from vote_submissions where result::text like ${"%" + code + "%"} or receipt_code = ${code})::int as subs,
+             (select count(*) from audit_events where details::text like ${"%" + code + "%"})::int as audit`;
+    expect(hit).toEqual({ subs: 0, audit: 0 });
+  });
+  it("ballots cast without a code still count; malformed codes are refused", async () => {
+    const f = await makeElection({ voters: 2 });
+    await cast(await session(f, 0), [{ position_id: f.positions[0].id, candidate_ids: [f.positions[0].cands[0]] }]);
+    await expect(castWithCode(await session(f, 1), [{ position_id: f.positions[0].id, candidate_ids: [f.positions[0].cands[0]] }], "VC-0000-0000-0000")).rejects.toThrow();
+    expect((await tally(f.electionId)).reduce((n, t) => n + Number(t.votes), 0)).toBe(1);
+  });
+  it("the anonymous ballot list is available only after publication", async () => {
+    const f = await makeElection();
+    await castWithCode(await session(f, 0), [{ position_id: f.positions[0].id, candidate_ids: [f.positions[0].cands[0]] }], "VC-XYZ2-3456-789A");
+    expect(await appDb()`select * from ballot.bulletin(${f.electionId})`).toHaveLength(0);
+    await ownerDb()`update elections set status = 'published', published_at = now() where id = ${f.electionId}`;
+    const rows = await appDb()`select * from ballot.bulletin(${f.electionId})`;
+    expect(rows).toHaveLength(1);
+    expect(Object.keys(rows[0]).sort()).toEqual(["candidate_name", "check_code", "position_name"]);
+  });
+});
+
 describe("secret ballot storage", () => {
   it("selections carry no voter reference or timestamp in a secret ballot", async () => {
     const f = await makeElection();
     await cast(await session(f, 0), [{ position_id: f.positions[0].id, candidate_ids: [f.positions[0].cands[0]] }]);
     const cols = await ownerDb()`select column_name from information_schema.columns where table_schema = 'ballot' and table_name = 'selections' order by ordinal_position`;
-    expect(cols.map((c) => c.column_name)).toEqual(["id", "election_id", "position_id", "candidate_id", "voter_ref"]);
+    expect(cols.map((c) => c.column_name)).toEqual(["id", "election_id", "position_id", "candidate_id", "voter_ref", "check_code"]);
     const [row] = await ownerDb()`select * from ballot.selections where election_id = ${f.electionId}`;
     expect(row.voter_ref).toBeNull();
     const pcols = await ownerDb()`select column_name from information_schema.columns where table_name = 'participations'`;

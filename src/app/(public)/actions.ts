@@ -25,7 +25,16 @@ export async function checkReceiptAction(_: ActionState, fd: FormData): Promise<
   return run(async () => {
     const code = str(fd, "code").toUpperCase().replace(/\s/g, "");
     if (!(await rateLimit(`receipt:${await ipHash()}`, 30, 3600)).ok) return { error: "Too many checks. Try again later." };
-    if (!/^VA-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}$/.test(code)) return { error: "Codes look like VA-XXXX-XXXX-XXXX." };
+    if (/^VC-/.test(code)) {
+      if (!/^VC-[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}$/.test(code)) return { error: "Verification codes look like VC-XXXX-XXXX-XXXX." };
+      const rows = await withCtx(systemCtx, (tx) => tx`select * from ballot.check_lookup(${code})`);
+      if (!rows.length) return { error: "No ballot with that verification code was found. If the election's retention period has ended, its records have been deleted." };
+      const byPos = new Map<string, string[]>();
+      for (const r of rows) byPos.set(r.position_name, [...(byPos.get(r.position_name) ?? []), r.candidate_name]);
+      return { ok: true, data: { verified: { election: rows[0].election_title, college: rows[0].college_name,
+        choices: [...byPos].map(([position, candidates]) => ({ position, candidates })) } } };
+    }
+    if (!/^VA-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}$/.test(code)) return { error: "Codes look like VA-XXXX-XXXX-XXXX (confirmation) or VC-XXXX-XXXX-XXXX (verification)." };
     const [r] = await withCtx(systemCtx, (tx) => tx`select s.created_at, e.title, e.timezone from vote_submissions s join elections e on e.id = s.election_id where s.receipt_code = ${code}`);
     if (!r) return { error: "No ballot with that confirmation code was found. If the election's retention period has ended, its records have been deleted." };
     const when = new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: r.timezone }).format(new Date(r.created_at));

@@ -9,7 +9,7 @@ test.describe.configure({ mode: "serial" });
 
 const ADMIN = { email: "admin@e2e-college.test", password: "Ballot-Keeper-2026!" };
 const run = Date.now().toString(36).slice(-5).toUpperCase();
-let collegePath = "", electionPath = "", slug = "", publicRef = "";
+let collegePath = "", electionPath = "", slug = "", publicRef = "", checkCode = "";
 
 async function voterXlsx() {
   const wb = new ExcelJS.Workbook(); const ws = wb.addWorksheet("Students");
@@ -170,6 +170,16 @@ test("8–13. Students verify, vote once per position, duplicates rejected", asy
   await c.getByRole("button", { name: /Submit ballot \(2\)/ }).click();
   await c.getByRole("button", { name: "Yes, submit my ballot" }).click();
   await c.waitForURL(new RegExp(`/e/${slug}/done`));
+  // The voter gets a private verification code; it never names the choices on this page.
+  checkCode = (await c.locator("p.font-mono", { hasText: /^VC-/ }).textContent())!.trim();
+  expect(checkCode).toMatch(/^VC-[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}$/);
+  // Verifying during voting shows exactly what was recorded.
+  await c.goto("/receipt");
+  await c.fill("#code", checkCode.toLowerCase());
+  await c.getByRole("button", { name: "Check code" }).click();
+  const box = c.getByRole("status").filter({ hasText: "The ballot recorded under this code" });
+  await expect(box.locator("li", { hasText: "Chairman" }).first()).toContainText("Asha Kumar");
+  await expect(box.locator("li", { hasText: "Vice Chairman" })).toContainText("Deepak Joy");
   await ctx2.close();
 
   // Unknown email and wrong student ID get the same neutral response; neither opens a ballot.
@@ -217,6 +227,14 @@ test("14–17. Close, review, publish, export — results match accepted ballots
   await expect(pub.getByText("Winner: Asha Kumar")).toBeVisible();
   await expect(pub.getByText(/Tie — needs resolution/)).toBeVisible();
   expect(await pub.content()).not.toContain("voter1@e2e-college.test");
+  // Anyone can download the anonymous ballot list and recount; it contains codes and choices only.
+  const bl = await pub.request.get(`/r/${publicRef}/ballots`);
+  expect(bl.status()).toBe(200);
+  const text = await bl.text();
+  expect(text).toContain(`${checkCode},Chairman,Asha Kumar`);
+  expect(text).toContain(`${checkCode},Vice Chairman,Deepak Joy`);
+  expect(text).not.toMatch(/@|ROLL\d|E2E Student/);
+  expect(text.trim().split(/\r?\n/)).toHaveLength(1 + 4); // header + 4 accepted selections
   await pub.close();
 
   // 17. Excel export with candidate-wise results.

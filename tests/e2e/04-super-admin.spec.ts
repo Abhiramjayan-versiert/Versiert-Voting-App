@@ -19,6 +19,13 @@ test("Super Admin can open, run, view results of, export and create elections in
   const r = await page.request.get(`/api/exports/${eid}/report.xlsx`);
   expect(r.status()).toBe(200);
 
+  // Live aggregate tally of the running union election (totals only — never individual ballots)
+  await page.goto("/platform/elections");
+  await page.locator("tr", { hasText: "College Union Election 2026" }).first().getByRole("link", { name: "Results" }).click();
+  await expect(page.getByText("Provisional — voting in progress")).toBeVisible();
+  await expect(page.getByText(/^Live · refreshed/)).toBeVisible();
+  expect(await page.content()).not.toMatch(/student\d{3}@northfield\.test/);
+
   // Manage an election at the OTHER college (Riverside) — full dashboard, not forbidden
   await page.goto("/platform/elections");
   await page.locator("tr", { hasText: "Students' Council 2026" }).getByRole("link", { name: "Manage" }).click();
