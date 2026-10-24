@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { requireSuperAdmin } from "@/lib/auth";
 import { withCtx } from "@/lib/db";
-import { PageHeader, Table, Badge, ButtonLink, Empty } from "@/components/ui";
+import { PageHeader, Table, Badge, ButtonLink, Empty, Notice } from "@/components/ui";
 
 export const metadata = { title: "Colleges" };
-export default async function Colleges() {
+export default async function Colleges({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
+  const sp = await searchParams;
   const { ctx } = await requireSuperAdmin();
   const rows = await withCtx(ctx, (tx) => tx`
     select c.id, c.code, c.name, c.city, c.status, c.default_retention_days,
@@ -14,6 +15,7 @@ export default async function Colleges() {
     from colleges c order by c.name`);
   return (
     <>
+      {sp.deleted && <Notice tone="success" className="mb-5">College deleted permanently, with all its elections and data. The action is recorded in the audit log.</Notice>}
       <PageHeader dark eyebrow="Platform" title="Colleges" description="Each college is an isolated tenant. Administrators only ever see colleges they're assigned to."
         actions={<ButtonLink href="/platform/colleges/new" variant="primary">Add college</ButtonLink>} />
       {rows.length === 0 ? <Empty dark title="No colleges yet" action={<ButtonLink href="/platform/colleges/new" variant="primary">Add the first college</ButtonLink>}>Create a college, then invite its election administrators.</Empty> : (

@@ -61,4 +61,41 @@ test("Super Admin can permanently delete a running election", async ({ page, req
   await expect(page.getByText(/Election permanently deleted/)).toBeVisible();
   await expect(page.locator("tr", { hasText: "College Union Election 2026" })).toHaveCount(0);
   expect((await request.get("/e/northfield-union-2026")).status()).toBe(404);
+
+  // Edit, then delete, a college administrator.
+  await page.goto("/platform/admins");
+  await page.locator("tr", { hasText: "admin@riverside.test" }).getByRole("link", { name: "Rahul Menon" }).click();
+  await expect(page.getByRole("heading", { name: "Edit details" })).toBeVisible();
+  await page.fill("#name", "Riverside Admin Renamed");
+  await page.fill("#email", "renamed@riverside.test");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Administrator details saved.")).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Riverside Admin Renamed" })).toBeVisible();
+  await page.getByRole("button", { name: "Delete account" }).click();
+  let dlg2 = page.locator("dialog[open]");
+  await dlg2.locator("textarea[name=reason]").fill("E2E: verifying Super Admin can delete an administrator");
+  await dlg2.locator("input[autocomplete=off]").fill("renamed@riverside.test");
+  await dlg2.getByRole("button", { name: "Delete permanently" }).click();
+  await expect(page.getByText(/Administrator account deleted/)).toBeVisible();
+  await expect(page.getByText("renamed@riverside.test")).toHaveCount(0);
+
+  // Edit, then delete, a whole college (with its elections).
+  await page.goto("/platform/colleges");
+  await page.getByRole("link", { name: "Riverside College of Arts & Science" }).click();
+  await page.fill("#city", "Kochi");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("College details saved.")).toBeVisible();
+  const code = "RCAS-DEMO";
+  await page.getByRole("button", { name: "Delete college permanently" }).click();
+  dlg2 = page.locator("dialog[open]");
+  await dlg2.locator("textarea[name=reason]").fill("E2E: verifying Super Admin can delete a college");
+  await dlg2.locator("input[autocomplete=off]").fill(code);
+  await dlg2.getByRole("button", { name: "Delete permanently" }).click();
+  await expect(page.getByText(/College deleted permanently/)).toBeVisible();
+  await expect(page.getByRole("link", { name: "Riverside College of Arts & Science" })).toHaveCount(0);
+  await page.goto("/platform/elections");
+  await expect(page.locator("tr", { hasText: "Created by Super Admin" })).toHaveCount(0);
+  await page.goto("/platform/audit");
+  await expect(page.getByText("college.delete").first()).toBeVisible();
 });

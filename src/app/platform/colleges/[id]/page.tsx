@@ -9,7 +9,7 @@ import { CollegeFields } from "@/components/college-form";
 import { InviteAdminForm } from "@/components/invite-form";
 import { isUuid } from "@/lib/action-utils";
 import { effectiveStatus, STATUS_LABEL } from "@/lib/lifecycle";
-import { updateCollegeAction, setCollegeStatusAction } from "../../actions";
+import { updateCollegeAction, setCollegeStatusAction, deleteCollegeAction } from "../../actions";
 
 export const metadata = { title: "College" };
 export default async function College({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {
@@ -95,6 +95,16 @@ export default async function College({ params, searchParams }: { params: Promis
             </tbody>
           </Table>
         )}
+      </Card>
+      <Card dark className="mt-6 border border-[#7a2a2a]">
+        <h2 className="font-semibold">Delete this college permanently</h2>
+        <p className="mt-1 text-sm text-g400">Removes the college, all {d.elections.length} of its election{d.elections.length === 1 ? "" : "s"} (including any running ones), every voter list, ballot, result and logo, and all administrator assignments. Administrator accounts stay but lose access to this college. This cannot be undone; the audit log keeps a record. To keep the data, suspend the college instead.</p>
+        <div className="mt-4">
+          <Confirm triggerClass="inline-flex h-9 items-center rounded-full border border-[#c0392b] px-4 text-sm text-paper hover:bg-[#c0392b]" trigger="Delete college permanently"
+            title={`Delete ${c.name}?`} tone="danger" confirmLabel="Delete permanently" requireText={c.code} reasonLabel="Reason (recorded in the audit log)"
+            body={<p>Everything belonging to this college is erased now, including {d.elections.length} election{d.elections.length === 1 ? "" : "s"}. This cannot be undone.</p>}
+            action={deleteCollegeAction} hidden={{ id }} />
+        </div>
       </Card>
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Card dark><h2 className="mb-3 font-semibold">Recent imports</h2>

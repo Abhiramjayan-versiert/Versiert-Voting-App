@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { requireSuperAdmin } from "@/lib/auth";
 import { withCtx } from "@/lib/db";
-import { PageHeader, Table, Badge, relTime, fmtDate, Empty } from "@/components/ui";
+import { PageHeader, Table, Badge, relTime, fmtDate, Empty, Notice } from "@/components/ui";
 import { InviteAdminForm } from "@/components/invite-form";
 
 export const metadata = { title: "Administrators" };
-export default async function Admins() {
+export default async function Admins({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
+  const sp = await searchParams;
   const { ctx } = await requireSuperAdmin();
   const { rows, colleges } = await withCtx(ctx, async (tx) => ({
     rows: await tx`
@@ -19,7 +20,8 @@ export default async function Admins() {
   }));
   return (
     <>
-      <PageHeader dark eyebrow="Platform" title="College administrators" description="Invite, assign, suspend or revoke. Access is enforced on the server and in the database." />
+      {sp.deleted && <Notice tone="success" className="mb-5">Administrator account deleted. Their past actions remain in the audit log.</Notice>}
+      <PageHeader dark eyebrow="Platform" title="College administrators" description="Invite, edit, assign, suspend, revoke or delete. Access is enforced on the server and in the database." />
       {rows.length === 0 ? <Empty dark title="No administrators yet">Invite one below.</Empty> : (
         <Table dark caption="College administrators">
           <thead><tr><th>Name</th><th>Colleges</th><th>Status</th><th>Invitation</th><th>MFA</th><th>Last login</th><th>Created</th><th>Elections</th></tr></thead>

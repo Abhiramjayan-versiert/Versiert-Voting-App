@@ -3,9 +3,9 @@ import { notFound } from "next/navigation";
 import { requireSuperAdmin } from "@/lib/auth";
 import { withCtx } from "@/lib/db";
 import { isUuid } from "@/lib/action-utils";
-import { PageHeader, Card, Badge, relTime, fmtDate, Select } from "@/components/ui";
+import { PageHeader, Card, Badge, relTime, fmtDate, Select, Input } from "@/components/ui";
 import { ActionForm, Confirm, SubmitButton } from "@/components/forms";
-import { adminAccessAction } from "../../actions";
+import { adminAccessAction, updateAdminAction, deleteAdminAction } from "../../actions";
 
 export const metadata = { title: "Administrator" };
 const pill = "inline-flex h-9 items-center rounded-full border border-g600 px-4 text-sm text-paper hover:border-lime";
@@ -49,9 +49,22 @@ export default async function Admin({ params }: { params: Promise<{ id: string }
             {u.status === "suspended" && <Confirm triggerClass={pill} trigger="Reactivate" title="Reactivate this administrator?" confirmLabel="Reactivate" tone="primary" body={<p>They can sign in again.</p>} action={adminAccessAction} hidden={{ user_id: id, op: "reactivate" }} />}
             {u.status !== "revoked" && u.status !== "suspended" && <Confirm triggerClass={pill} trigger={u.status === "invited" ? "Resend invitation" : "Issue password reset"} title={u.status === "invited" ? "Send a new invitation?" : "Issue a reset link?"} confirmLabel="Send" body={<p>Any previous link stops working. The new link is single-use.</p>} action={adminAccessAction} hidden={{ user_id: id, op: u.status === "invited" ? "resend_invite" : "reset_link" }} />}
             <Confirm triggerClass={pill} trigger="Sign out all sessions" title="Sign out all sessions?" confirmLabel="Sign out" body={<p>Every active session for this account ends now.</p>} action={adminAccessAction} hidden={{ user_id: id, op: "sessions" }} />
+            <Confirm triggerClass="inline-flex h-9 items-center rounded-full border border-[#c0392b] px-4 text-sm text-paper hover:bg-[#c0392b]" trigger="Delete account" title="Delete this administrator permanently?" tone="danger" confirmLabel="Delete permanently"
+              body={<p>The account, its college assignments and sessions are erased now. Elections they managed are kept. Their past actions remain in the audit log. This cannot be undone.</p>}
+              action={deleteAdminAction} hidden={{ user_id: id }} reasonLabel="Reason (recorded in the audit log)" requireText={u.email} />
             {u.mfa_enabled && <Confirm triggerClass={pill} trigger="Reset two-step verification" title="Reset two-step verification?" tone="danger" confirmLabel="Reset" body={<p>Use only after confirming their identity out-of-band (lost device).</p>} action={adminAccessAction} hidden={{ user_id: id, op: "reset_mfa" }} reasonLabel="How was their identity confirmed?" />}
           </div>
         </Card>
+        <div className="rounded-[var(--radius-card)] bg-paper p-5 text-ink">
+          <h2 className="mb-3 font-semibold">Edit details</h2>
+          <ActionForm action={updateAdminAction} className="space-y-3">
+            <input type="hidden" name="user_id" value={id} />
+            <div><label htmlFor="name" className="text-sm font-medium">Name</label><Input id="name" name="name" defaultValue={u.name} required className="mt-1.5" /></div>
+            <div><label htmlFor="email" className="text-sm font-medium">Sign-in email</label><Input id="email" name="email" type="email" defaultValue={u.email} required className="mt-1.5" />
+              <p className="mt-1 text-xs text-g500">They sign in with the new email from now on. Any unused invitation or reset link stops working.</p></div>
+            <SubmitButton pendingText="Saving…">Save changes</SubmitButton>
+          </ActionForm>
+        </div>
         <Card dark>
           <h2 className="mb-3 font-semibold">College assignments</h2>
           <ul className="divide-y divide-g800">{d.assigned.map((c) => (

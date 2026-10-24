@@ -3,7 +3,7 @@
 -- 1. Replace CHANGE_ME_APP_DB_PASSWORD below with a long random password.
 --    (Letters and numbers only — avoid quotes and @ : / ? # so it works in a URL.)
 -- 2. Paste this whole file into Supabase → SQL Editor → Run.
--- Safe to run once on an empty project. Includes migrations: 0001_core.sql, 0002_ballot_functions.sql, 0003_rls_and_grants.sql, 0004_mfa_replay.sql, 0005_grants_migrations.sql, 0006_student_id_verification.sql, 0007_supabase_hardening.sql, 0008_fixed_search_paths.sql, 0009_super_admin_delete_election.sql, 0010_vote_verification_codes.sql
+-- Safe to run once on an empty project. Includes migrations: 0001_core.sql, 0002_ballot_functions.sql, 0003_rls_and_grants.sql, 0004_mfa_replay.sql, 0005_grants_migrations.sql, 0006_student_id_verification.sql, 0007_supabase_hardening.sql, 0008_fixed_search_paths.sql, 0009_super_admin_delete_election.sql, 0010_vote_verification_codes.sql, 0011_super_admin_delete_college.sql
 -- ============================================================================
 
 do $$ begin
@@ -1035,5 +1035,34 @@ grant execute on function ballot.check_lookup(text) to vapp_app;
 grant execute on function ballot.bulletin(uuid) to vapp_app;
 
 insert into schema_migrations (name, checksum) values ('0010_vote_verification_codes.sql', 'c196b9aced09d790a411f19741f73f14256cf127524489cdf9ac787abb2e247c') on conflict (name) do nothing;
+
+-- ─── 0011_super_admin_delete_college.sql ───────────────────────────────────
+-- Super Admin: permanently delete a college and everything that belongs to it.
+-- Every election is removed through ballot.delete_election (which is allowed to remove immutable
+-- ballot rows); the college row then cascades to its remaining dependent rows. The audit log is
+-- append-only and keeps its history (it has no foreign key to colleges).
+create or replace function ballot.delete_college(p_college uuid) returns jsonb
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  c   colleges%rowtype;
+  e   record;
+  refs jsonb := '[]'::jsonb;
+  n_admins int;
+begin
+  select * into c from colleges where id = p_college for update;
+  if not found then raise exception 'NOT_FOUND'; end if;
+  for e in select id, public_ref, status from elections where college_id = c.id loop
+    perform ballot.delete_election(e.id);
+    refs := refs || jsonb_build_object('public_ref', e.public_ref, 'status', e.status, 'election_id', e.id);
+  end loop;
+  select count(*) into n_admins from college_admins where college_id = c.id;
+  delete from colleges where id = c.id;
+  return jsonb_build_object('code', c.code, 'name', c.name, 'elections', refs, 'admin_assignments', n_admins);
+end $$;
+
+revoke execute on function ballot.delete_college(uuid) from public;
+grant execute on function ballot.delete_college(uuid) to vapp_app;
+
+insert into schema_migrations (name, checksum) values ('0011_super_admin_delete_college.sql', '5fb22375a70b434b7b4120c76932953f8f25a43fcd4f31aa5a55de579286df25') on conflict (name) do nothing;
 
 select 'V.app database ready — ' || count(*) || ' migrations recorded' as status from schema_migrations;

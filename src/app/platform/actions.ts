@@ -318,3 +318,86 @@ export async function deleteAnyElectionAction(_: ActionState, fd: FormData): Pro
   if (dest) redirect(dest);
   return res;
 }
+
+/** Permanently deletes a college with all its elections, voters, ballots and admin assignments. */
+export async function deleteCollegeAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let done = false;
+  const res = await run(async () => {
+    const { ctx, a } = await actor();
+    const id = str(fd, "id");
+    if (!isUuid(id)) throw new UserError("College not found.");
+    const [c] = await withCtx(ctx, (tx) => tx`select id, code, name from colleges where id = ${id}`);
+    if (!c) throw new UserError("College not found.");
+    if (str(fd, "confirm_text").trim().toUpperCase() !== c.code) throw new UserError(`Type ${c.code} exactly to confirm.`);
+    const reason = str(fd, "reason");
+    if (reason.length < 10) throw new UserError("Give a reason of at least 10 characters.");
+    await withCtx(ctx, async (tx) => {
+      const [r] = await tx`select ballot.delete_college(${id}) as c`;
+      const out = r.c as { elections: { public_ref: string; status: string; election_id: string }[]; admin_assignments: number };
+      for (const e of out.elections) {
+        await tx`insert into deletion_receipts (election_ref, college_id, election_id, kept_aggregate, counts, verified)
+                 values (${e.public_ref}, null, ${e.election_id}, false, ${tx.json({ manual: true, college_deleted: c.code, status_at_deletion: e.status } as never)}, true)`;
+      }
+      await audit({ actorId: a.id, actorLabel: a.label, collegeId: id, action: "college.delete", target: c.name,
+        details: { reason, code: c.code, elections_deleted: out.elections.map((e) => e.public_ref), admin_assignments_removed: out.admin_assignments }, ipHash: a.ipHash }, tx);
+    });
+    revalidatePath("/platform/colleges");
+    done = true;
+  });
+  if (done) redirect("/platform/colleges?deleted=1");
+  return res;
+}
+
+const adminSchema = z.object({
+  name: z.string().trim().min(2, "Enter the administrator's name.").max(120),
+});
+
+/** Edit a college administrator's name and sign-in email. */
+export async function updateAdminAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  return run(async () => {
+    const { ctx, a } = await actor();
+    const userId = str(fd, "user_id"); if (!isUuid(userId)) throw new UserError("Invalid account.");
+    const { name } = adminSchema.parse({ name: str(fd, "name") });
+    const email = normalizeEmail(str(fd, "email"));
+    if (!email) throw new UserError("Enter a valid email address.");
+    await withCtx(ctx, async (tx) => {
+      const [u] = await tx`select id, email, name, role from users where id = ${userId}`;
+      if (!u || u.role !== "college_admin") throw new UserError("Administrator not found.");
+      const [dup] = await tx`select 1 from users where email = ${email} and id <> ${userId}`;
+      if (dup) throw new UserError("Another account already uses that email address.");
+      await tx`update users set name = ${name}, email = ${email} where id = ${userId}`;
+      if (email !== u.email) {
+        // Pending invitation/reset links were addressed to the old email — invalidate them.
+        await tx`update auth_tokens set used_at = now() where user_id = ${userId} and used_at is null`;
+      }
+      await audit({ actorId: a.id, actorLabel: a.label, action: "admin.update", target: email,
+        details: { name_changed: name !== u.name, email_changed: email !== u.email, previous_email: email !== u.email ? u.email : undefined }, ipHash: a.ipHash }, tx);
+    });
+    revalidatePath(`/platform/admins/${userId}`);
+    return { ok: true, message: "Administrator details saved." };
+  });
+}
+
+/** Permanently delete a college administrator account (signs them out everywhere). Their past actions stay in the audit log. */
+export async function deleteAdminAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let done = false;
+  const res = await run(async () => {
+    const { ctx, a } = await actor();
+    const userId = str(fd, "user_id"); if (!isUuid(userId)) throw new UserError("Invalid account.");
+    const reason = str(fd, "reason");
+    if (reason.length < 10) throw new UserError("Give a reason of at least 10 characters.");
+    await withCtx(ctx, async (tx) => {
+      const [u] = await tx`select id, email, role from users where id = ${userId}`;
+      if (!u || u.role !== "college_admin") throw new UserError("Administrator not found.");
+      if (str(fd, "confirm_text").trim().toLowerCase() !== u.email) throw new UserError(`Type ${u.email} exactly to confirm.`);
+      const colleges = await tx`select college_id from college_admins where user_id = ${userId}`;
+      await tx`delete from users where id = ${userId} and role = 'college_admin'`;
+      await audit({ actorId: a.id, actorLabel: a.label, collegeId: colleges[0]?.college_id ?? null, action: "admin.delete", target: u.email,
+        details: { reason, colleges: colleges.map((c) => c.college_id) }, ipHash: a.ipHash }, tx);
+    });
+    revalidatePath("/platform/admins");
+    done = true;
+  });
+  if (done) redirect("/platform/admins?deleted=1");
+  return res;
+}

@@ -195,6 +195,37 @@ describe("Super Admin full election access", () => {
   });
 });
 
+describe("Super Admin college and administrator management", () => {
+  it("delete_college removes the college, its elections and ballots, keeps admin accounts and the audit log", async () => {
+    const f = await makeElection({ voters: 2 });
+    await cast(await session(f, 0), [{ position_id: f.positions[0].id, candidate_ids: [f.positions[0].cands[0]] }]);
+    const [u] = await ownerDb()`insert into users (email, name, role, status) values (${`del-${f.electionId.slice(0, 8)}@t.test`}, 'Del Admin', 'college_admin', 'active') returning id`;
+    await ownerDb()`insert into college_admins (user_id, college_id) values (${u.id}, ${f.collegeId})`;
+    const [{ n: auditBefore }] = await ownerDb()`select count(*)::int as n from audit_events`;
+    const [r] = await appDb()`select ballot.delete_college(${f.collegeId}) as c`;
+    expect(r.c.elections).toHaveLength(1);
+    expect(r.c.admin_assignments).toBe(1);
+    expect(await ownerDb()`select id from colleges where id = ${f.collegeId}`).toHaveLength(0);
+    expect(await ownerDb()`select id from elections where id = ${f.electionId}`).toHaveLength(0);
+    expect(await ownerDb()`select id from ballot.selections where election_id = ${f.electionId}`).toHaveLength(0);
+    expect(await ownerDb()`select 1 from college_admins where college_id = ${f.collegeId}`).toHaveLength(0);
+    expect(await ownerDb()`select id from users where id = ${u.id}`).toHaveLength(1);
+    const [{ n: auditAfter }] = await ownerDb()`select count(*)::int as n from audit_events`;
+    expect(auditAfter).toBeGreaterThanOrEqual(auditBefore);
+  });
+  it("only a Super Admin context can see and delete administrator accounts across colleges", async () => {
+    const f = await makeElection();
+    const [u] = await ownerDb()`insert into users (email, name, role, status) values (${`rm-${f.electionId.slice(0, 8)}@t.test`}, 'Remove Me', 'college_admin', 'active') returning id`;
+    await ownerDb()`insert into college_admins (user_id, college_id) values (${u.id}, ${f.collegeId})`;
+    const sup: Ctx = { role: "super_admin", userId: actor.id };
+    await withCtx(sup, (tx) => tx`update users set name = 'Renamed', email = ${`renamed-${f.electionId.slice(0, 8)}@t.test`} where id = ${u.id}`);
+    expect((await ownerDb()`select name from users where id = ${u.id}`)[0].name).toBe("Renamed");
+    await withCtx(sup, (tx) => tx`delete from users where id = ${u.id} and role = 'college_admin'`);
+    expect(await ownerDb()`select id from users where id = ${u.id}`).toHaveLength(0);
+    expect(await ownerDb()`select 1 from college_admins where user_id = ${u.id}`).toHaveLength(0);
+  });
+});
+
 describe("retention and deletion lifecycle", () => {
   it("refuses premature purge, then deletes personal data and keeps the public aggregate", async () => {
     const f = await makeElection({ voters: 3, retentionDays: 1, keepPublic: true });
