@@ -3,7 +3,7 @@
 -- 1. Replace CHANGE_ME_APP_DB_PASSWORD below with a long random password.
 --    (Letters and numbers only — avoid quotes and @ : / ? # so it works in a URL.)
 -- 2. Paste this whole file into Supabase → SQL Editor → Run.
--- Safe to run once on an empty project. Includes migrations: 0001_core.sql, 0002_ballot_functions.sql, 0003_rls_and_grants.sql, 0004_mfa_replay.sql, 0005_grants_migrations.sql, 0006_student_id_verification.sql, 0007_supabase_hardening.sql, 0008_fixed_search_paths.sql, 0009_super_admin_delete_election.sql, 0010_vote_verification_codes.sql, 0011_super_admin_delete_college.sql
+-- Safe to run once on an empty project. Includes migrations: 0001_core.sql, 0002_ballot_functions.sql, 0003_rls_and_grants.sql, 0004_mfa_replay.sql, 0005_grants_migrations.sql, 0006_student_id_verification.sql, 0007_supabase_hardening.sql, 0008_fixed_search_paths.sql, 0009_super_admin_delete_election.sql, 0010_vote_verification_codes.sql, 0011_super_admin_delete_college.sql, 0012_email_code_verification.sql
 -- ============================================================================
 
 do $$ begin
@@ -1064,5 +1064,12 @@ revoke execute on function ballot.delete_college(uuid) from public;
 grant execute on function ballot.delete_college(uuid) to vapp_app;
 
 insert into schema_migrations (name, checksum) values ('0011_super_admin_delete_college.sql', '5fb22375a70b434b7b4120c76932953f8f25a43fcd4f31aa5a55de579286df25') on conflict (name) do nothing;
+
+-- ─── 0012_email_code_verification.sql ──────────────────────────────────────
+-- Optional second step for voters: a 6-digit code emailed to the address on the voter list.
+-- Applies only while an email provider is configured; otherwise voters verify with email + student ID.
+alter table elections add column require_email_code boolean not null default true;
+
+insert into schema_migrations (name, checksum) values ('0012_email_code_verification.sql', 'a58569a3c30802f7f8879b378a526709c8ff369ecacc5e4d12708e1b3bc92a26') on conflict (name) do nothing;
 
 select 'V.app database ready — ' || count(*) || ' migrations recorded' as status from schema_migrations;

@@ -1,5 +1,20 @@
 import { createHmac } from "node:crypto";
 import type { Page, BrowserContext } from "@playwright/test";
+import postgres from "postgres";
+
+const E2E_DB = `postgres://${process.env.E2E_DB_OWNER ?? "postgres:postgres"}@${process.env.E2E_DB_HOST ?? "localhost:5432"}/${process.env.E2E_DB_NAME ?? "vapp_e2e"}`;
+let db: ReturnType<typeof postgres> | null = null;
+/** Reads the latest voting code sent to an address from the test-mode mailbox (no real email is sent in test mode). */
+export async function latestCode(email: string, after: Date) {
+  db ??= postgres(E2E_DB, { max: 1, onnotice: () => {} });
+  for (let i = 0; i < 40; i++) {
+    const [m] = await db`select body_text from dev_mailbox where to_email = ${email} and created_at >= ${after} and subject like '%voting code%' order by created_at desc limit 1`;
+    const code = m?.body_text.match(/\b(\d{6})\b/)?.[1];
+    if (code) return code;
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  throw new Error("no voting code email for " + email);
+}
 
 export const SUPER = { email: "dev@vapp.test", password: "TestMode-Dev-2026!", totp: "VAPPDEMOSUPERADMINTESTMODE234567" };
 export const CRON = "e2e-cron-secret-0123456789";
@@ -46,6 +61,10 @@ export function sidFor(email: string) {
 export async function verifyVoter(page: Page, _ctx: BrowserContext, slug: string, email: string, studentId = sidFor(email)) {
   await page.goto(`/e/${slug}/verify`);
   await page.fill("#email", email); await page.fill("#student_id", studentId);
+  const before = new Date(Date.now() - 2000);
+  await page.click("button:has-text('Continue')");
+  await page.locator("#code").waitFor();
+  await page.fill("#code", await latestCode(email.trim().toLowerCase(), before));
   await page.click("button:has-text('Verify and open ballot')");
   await page.waitForURL(new RegExp(`/e/${slug}/ballot`));
 }

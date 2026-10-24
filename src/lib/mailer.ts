@@ -1,8 +1,20 @@
 import "server-only";
-import { env, isTestMode } from "./env";
+import nodemailer from "nodemailer";
+import { env, isTestMode, gmailEnabled } from "./env";
 import { sql, type Sql } from "./db";
 
 type Mail = { to: string; subject: string; text: string };
+
+let gmail: nodemailer.Transporter | null = null;
+function gmailTransport() {
+  const e = env();
+  gmail ??= nodemailer.createTransport({
+    host: "smtp.gmail.com", port: 465, secure: true,
+    auth: { user: e.GMAIL_USER, pass: (e.GMAIL_APP_PASSWORD ?? "").replace(/\s/g, "") },
+    connectionTimeout: 8000, greetingTimeout: 8000, socketTimeout: 10000,
+  });
+  return gmail;
+}
 
 /** Sends immediately. Used for one-time codes, which must never be persisted in production. */
 export async function sendMailNow(m: Mail): Promise<{ ok: boolean; error?: string }> {
@@ -10,6 +22,17 @@ export async function sendMailNow(m: Mail): Promise<{ ok: boolean; error?: strin
   if (isTestMode()) {
     await sql()`insert into dev_mailbox (to_email, subject, body_text) values (${m.to}, ${m.subject}, ${m.text})`;
     return { ok: true };
+  }
+  if (gmailEnabled()) {
+    try {
+      const from = e.EMAIL_FROM && e.EMAIL_FROM.includes(e.GMAIL_USER!) ? e.EMAIL_FROM : `"V.app Elections" <${e.GMAIL_USER}>`;
+      await gmailTransport().sendMail({ from, to: m.to, subject: m.subject, text: m.text });
+      return { ok: true };
+    } catch (err) {
+      // Never log the message body (it may contain a one-time code) — only the error class/code.
+      const code = (err as { code?: string; responseCode?: number }).responseCode ?? (err as { code?: string }).code ?? (err as Error).name;
+      return { ok: false, error: `Gmail SMTP error ${code}` };
+    }
   }
   if (!e.RESEND_API_KEY || !e.EMAIL_FROM) return { ok: false, error: "Email provider not configured" };
   try {

@@ -187,7 +187,7 @@ test("8–13. Students verify, vote once per position, duplicates rejected", asy
   for (const [em, id] of [["stranger@e2e-college.test", "ROLL1"], ["voter3@e2e-college.test", "ROLL4"]]) {
     await d.goto(`/e/${slug}/verify`);
     await d.fill("#email", em); await d.fill("#student_id", id);
-    await d.click("button:has-text('Verify and open ballot')");
+    await d.click("button:has-text('Continue')");
     await expect(d.getByText(/couldn't verify those details/)).toBeVisible();
     await expect(d).toHaveURL(new RegExp(`/e/${slug}/verify`));
   }

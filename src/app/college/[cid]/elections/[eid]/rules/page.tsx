@@ -1,5 +1,6 @@
 import { loadElection } from "@/lib/election-page";
 import { getConfig } from "@/lib/config";
+import { emailEnabled } from "@/lib/env";
 import { Card, Notice, Check, Field, Select, ButtonLink } from "@/components/ui";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { WizardSteps } from "@/components/wizard";
@@ -11,6 +12,7 @@ export default async function Rules({ params }: { params: Promise<{ cid: string;
   const { e, base } = await loadElection(cid, eid);
   const cfg = await getConfig();
   const locked = e.status !== "draft";
+  const emailOn = emailEnabled();
   return (
     <>
       {!locked && <WizardSteps current="rules" base={base} done={{ details: true, voters: true, positions: true }} />}
@@ -34,6 +36,7 @@ export default async function Rules({ params }: { params: Promise<{ cid: string;
               </div>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <Check name="allow_abstain" label="Allow abstention" description="Voters can record “abstain” for a position. Counted separately; never a candidate vote." defaultChecked={e.allow_abstain} />
+                <Check name="require_email_code" label="Email a 6-digit code to confirm each voter" description={emailOn ? "Recommended. After email + student ID match, the student must enter a code sent to that email — someone who only knows a classmate's email and roll number can't vote." : "Email isn't set up on this platform yet, so this has no effect until the Super Admin adds a Gmail sender."} defaultChecked={e.require_email_code !== false} />
                 <Check name="require_all_positions" label="Require every position" description="Off (default): students may vote for some positions now and others later, or skip positions." defaultChecked={e.require_all_positions} />
               </div>
             </section>

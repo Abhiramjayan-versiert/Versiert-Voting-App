@@ -85,6 +85,7 @@ export async function updateDetails(ctx: Ctx, actor: Actor, id: string, d: Detai
 export type RulesInput = {
   secret_ballot: boolean; allow_abstain: boolean; require_all_positions: boolean; admin_live_results: boolean;
   results_require_approval: boolean; allow_unpublish: boolean; retention_days: number; keep_public_results: boolean;
+  require_email_code?: boolean;
 };
 export async function updateRules(ctx: Ctx, actor: Actor, id: string, r: RulesInput) {
   const cfg = await getConfig();
@@ -95,7 +96,8 @@ export async function updateRules(ctx: Ctx, actor: Actor, id: string, r: RulesIn
     await tx`update elections set secret_ballot = ${r.secret_ballot}, allow_abstain = ${r.allow_abstain},
                require_all_positions = ${r.require_all_positions}, admin_live_results = ${r.admin_live_results},
                results_require_approval = ${r.results_require_approval}, allow_unpublish = ${r.allow_unpublish},
-               retention_days = ${r.retention_days}, keep_public_results = ${r.keep_public_results} where id = ${id}`;
+               retention_days = ${r.retention_days}, keep_public_results = ${r.keep_public_results},
+               require_email_code = ${r.require_email_code ?? true} where id = ${id}`;
     await audit({ actorId: actor.id, actorLabel: actor.label, collegeId: e.college_id, electionId: id, action: "election.update_rules", details: { ...r }, ipHash: actor.ipHash }, tx);
   });
 }

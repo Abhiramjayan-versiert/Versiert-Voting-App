@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { loginAdmin, verifyVoter, CRON, SUPER } from "./helpers";
+import { loginAdmin, verifyVoter, latestCode, CRON, SUPER } from "./helpers";
 
 /** Mandatory security tests (section 18) executed against the production build with seeded fictional data. */
 const NF = "admin@northfield.test", RV = "admin@riverside.test", PW = "TestMode-Admin-2026!";
@@ -60,21 +60,43 @@ test("voting requires email verification; submissions without a session are refu
   expect(r.status()).toBe(401);
   // Knowing only the email is not enough: a wrong student ID is rejected with a neutral message.
   await page.fill("#email", "student002@northfield.test"); await page.fill("#student_id", "T9999");
-  await page.click("button:has-text('Verify and open ballot')");
+  await page.click("button:has-text('Continue')");
   await expect(page.getByText(/couldn't verify those details/)).toBeVisible();
+});
+
+test("knowing a student's email and ID is not enough: the emailed code is required", async ({ page }) => {
+  await page.goto(`/e/${SLUG}/verify`);
+  await page.fill("#email", "student005@northfield.test"); await page.fill("#student_id", "T0005");
+  await page.click("button:has-text('Continue')");
+  await expect(page.getByText(/emailed a 6-digit code to st•+@northfield\.test/)).toBeVisible();
+  // Wrong codes are refused; the fifth wrong code cancels it.
+  for (let i = 0; i < 4; i++) {
+    await page.fill("#code", "000000");
+    await page.click("button:has-text('Verify and open ballot')");
+    await expect(page.getByText(/That code isn't right/)).toBeVisible();
+  }
+  await page.fill("#code", "000000");
+  await page.click("button:has-text('Verify and open ballot')");
+  await expect(page.getByText(/Too many wrong codes/)).toBeVisible();
+  // Even the real (now cancelled) code no longer works.
+  const real = await latestCode("student005@northfield.test", new Date(Date.now() - 120_000));
+  await page.fill("#code", real);
+  await page.click("button:has-text('Verify and open ballot')");
+  await expect(page.getByText(/expired or was already used/)).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/e/${SLUG}/verify`));
 });
 
 test("guessing student IDs is locked out per email", async ({ page }) => {
   for (let i = 0; i < 5; i++) {
     await page.goto(`/e/${SLUG}/verify`);
     await page.fill("#email", "student004@northfield.test"); await page.fill("#student_id", `GUESS${i}`);
-    await page.click("button:has-text('Verify and open ballot')");
+    await page.click("button:has-text('Continue')");
     await expect(page.getByText(/couldn't verify those details/)).toBeVisible();
   }
   // Even the correct ID is now refused for this email until the window passes.
   await page.goto(`/e/${SLUG}/verify`);
   await page.fill("#email", "student004@northfield.test"); await page.fill("#student_id", "T0004");
-  await page.click("button:has-text('Verify and open ballot')");
+  await page.click("button:has-text('Continue')");
   await expect(page.getByText(/Too many attempts for this email/)).toBeVisible();
 });
 

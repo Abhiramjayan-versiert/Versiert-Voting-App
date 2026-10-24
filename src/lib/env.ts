@@ -10,6 +10,9 @@ const schema = z.object({
   CRON_SECRET: z.string().min(16),
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().optional(),
+  // Free option: a dedicated Gmail account + a Google "App password" (sent over Gmail SMTP).
+  GMAIL_USER: z.string().email().optional(),
+  GMAIL_APP_PASSWORD: z.string().optional(),
   TURNSTILE_SITE_KEY: z.string().optional(),
   TURNSTILE_SECRET_KEY: z.string().optional(),
   DB_POOL_MAX: z.coerce.number().int().min(1).max(50).default(5),
@@ -34,4 +37,5 @@ export function env() {
 }
 export const isTestMode = () => env().APP_MODE === "test";
 /** Email is optional. Without a provider, invitation/reset links are shown on screen to the Super Admin instead. */
-export const emailEnabled = () => isTestMode() || !!(env().RESEND_API_KEY && env().EMAIL_FROM);
+export const gmailEnabled = () => !!(env().GMAIL_USER && env().GMAIL_APP_PASSWORD);
+export const emailEnabled = () => isTestMode() || gmailEnabled() || !!(env().RESEND_API_KEY && env().EMAIL_FROM);

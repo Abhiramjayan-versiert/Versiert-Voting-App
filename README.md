@@ -76,7 +76,17 @@ Migrations are plain SQL in `db/migrations/`, applied in order and recorded in `
 
 ## 9. Email provider setup
 
-**Optional.** Voters verify with email + student ID, so V.app works with no email service. Without one: when you invite a college admin or issue a password reset, the single-use link is shown on screen in the developer console — send it yourself (WhatsApp, etc.); the "Email invitations/reminders" buttons tell admins to share the voting link themselves. To enable email later, create a Resend API key, verify your domain and set `RESEND_API_KEY` and `EMAIL_FROM`.
+**Optional, and free with Gmail.** Without email, voters verify with email + student ID, and invitation/reset links are shown on screen for you to send yourself.
+
+With email, voters also receive a **6-digit code** at the address on the voter list (per-election setting "Email a 6-digit code to confirm each voter", on by default). So knowing a classmate's email and roll number is no longer enough to vote. Codes expire after 10 minutes; 5 wrong tries cancel a code; at most 3 codes per 15 minutes per student.
+
+Free setup with Gmail (≈500 emails/day):
+1. Create a new Gmail account just for elections (e.g. `yourcollege.elections@gmail.com`).
+2. Turn on 2-Step Verification for it (Google Account → Security).
+3. Create an **App password** (Google Account → Security → App passwords, or myaccount.google.com/apppasswords) — a 16-letter password.
+4. In Vercel → Project → Settings → Environment Variables add `GMAIL_USER` (the address) and `GMAIL_APP_PASSWORD` (the 16 letters), then redeploy.
+
+Alternatively set `RESEND_API_KEY` and `EMAIL_FROM` (needs your own domain).
 
 ## 10. Development server
 

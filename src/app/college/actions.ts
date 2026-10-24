@@ -208,6 +208,7 @@ export async function updateRulesAction(_: ActionState, fd: FormData): Promise<A
       secret_ballot: str(fd, "ballot_type") !== "open", allow_abstain: bool(fd, "allow_abstain"), require_all_positions: bool(fd, "require_all_positions"),
       admin_live_results: bool(fd, "admin_live_results"), results_require_approval: bool(fd, "results_require_approval"), allow_unpublish: bool(fd, "allow_unpublish"),
       retention_days: Number(str(fd, "retention_days")), keep_public_results: bool(fd, "keep_public_results"),
+      require_email_code: bool(fd, "require_email_code"),
     });
     refresh(e);
     return { ok: true, message: "Voting rules saved." };

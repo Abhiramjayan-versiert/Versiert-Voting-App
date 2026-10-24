@@ -5,8 +5,8 @@ import { VoterShell } from "@/components/voter-shell";
 import { VerifyFlow } from "@/components/verify-flow";
 import { Notice } from "@/components/ui";
 import { maintenanceScreen } from "@/components/maintenance";
-import { isTestMode } from "@/lib/env";
-import { verifyVoterAction } from "../../actions";
+import { isTestMode, emailEnabled } from "@/lib/env";
+import { verifyVoterAction, verifyCodeAction } from "../../actions";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Verify your email", robots: { index: false } };
@@ -18,14 +18,15 @@ export default async function Verify({ params, searchParams }: { params: Promise
   if (!e) notFound();
   if (e.effective !== "open") redirect(`/e/${slug}`);
   if (await getVoterSession(slug)) redirect(`/e/${slug}/ballot`);
+  const needsCode = e.require_email_code !== false && emailEnabled();
   return (
     <VoterShell college={e.college_name} collegeId={e.college_id} hasLogo={e.has_logo} slug={slug}>
       <Link href={`/e/${slug}`} className="text-sm text-g500 hover:text-ink">← {e.title}</Link>
       <h1 className="mt-4 text-[2rem] font-semibold leading-tight">Verify it's you</h1>
-      <p className="mt-2 text-g600">Enter the email your college registered for you and your student ID. Only students on the uploaded voter list can vote.</p>
+      <p className="mt-2 text-g600">Enter the email your college registered for you and your student ID.{needsCode ? " We'll then email you a 6-digit code to confirm it's really you." : ""} Only students on the uploaded voter list can vote.</p>
       {sp.expired && <Notice tone="warning" className="mt-5">Your voting session expired. Verify again to continue — anything you already submitted is safe.</Notice>}
-      {isTestMode() && <Notice tone="info" className="mt-5" title="Test mode">Try <span className="font-mono">student001@northfield.test</span> with student ID <span className="font-mono">T0001</span> (student002 → T0002, and so on).</Notice>}
-      <div className="mt-6"><VerifyFlow slug={slug} verifyAction={verifyVoterAction} /></div>
+      {isTestMode() && <Notice tone="info" className="mt-5" title="Test mode">Try <span className="font-mono">student001@northfield.test</span> with student ID <span className="font-mono">T0001</span> (student002 → T0002, and so on).{needsCode ? " Codes appear in the Super Admin test mailbox." : ""}</Notice>}
+      <div className="mt-6"><VerifyFlow slug={slug} verifyAction={verifyVoterAction} codeAction={verifyCodeAction} /></div>
     </VoterShell>
   );
 }
