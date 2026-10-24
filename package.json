@@ -19,7 +19,8 @@
     "test:e2e": "playwright test",
     "test:all": "vitest run && playwright test",
     "db:setup": "npm run db:roles && npm run db:migrate",
-    "cron:local": "tsx --env-file-if-exists=.env.local scripts/run-cron.ts"
+    "cron:local": "tsx --env-file-if-exists=.env.local scripts/run-cron.ts",
+    "db:supabase-sql": "tsx scripts/build-supabase-sql.ts"
   },
   "dependencies": {
     "@e965/xlsx": "^0.20.3",

@@ -11,7 +11,19 @@
 
 No object storage is required: uploaded spreadsheets are processed in memory and never stored; candidate photos, banners and logos (≤ 800 KB each) are stored in PostgreSQL and deleted with their rows. Nothing depends on the local filesystem.
 
-## Step by step
+## Step by step (GitHub + Supabase + Vercel, no terminal needed)
+
+1. **GitHub:** create a **private** repository, unzip the package and upload the *contents* of the `vapp` folder (Add file → Upload files), commit.
+2. **Supabase:** New project → region **South Asia (Mumbai)** → save the database password. Wait until it's ready.
+3. **Database setup:** open `supabase/setup.sql`, replace both `CHANGE_ME_APP_DB_PASSWORD` with a long letters-and-numbers password, paste the whole file into **SQL Editor → New query → Run**. Expect "V.app database ready — N migrations recorded".
+4. **Runtime connection string:** Supabase → **Connect** → *Transaction pooler* URI. Change the user `postgres.<ref>` to `vapp_app.<ref>`, the password to the one from step 3, and add `?sslmode=require`:
+   `postgres://vapp_app.<ref>:<password>@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?sslmode=require`
+5. **Disable Supabase's public API** (V.app doesn't use it): Project Settings → Data API → turn off. (Migration 0007 already revokes the API roles' access as a second layer.)
+6. **Vercel:** Add New → Project → import the GitHub repo → add environment variables `APP_MODE=production`, `APP_URL=https://<project>.vercel.app`, `DATABASE_URL` (step 4), `HMAC_SECRET`, `ENCRYPTION_KEY`, `CRON_SECRET` → Deploy. If you change `APP_URL` later (custom domain), redeploy.
+7. **Super Admin:** create it with the SQL from the setup instructions (or `npm run bootstrap:superadmin` from a computer), sign in at `/admin/login`, enrol MFA, change the password.
+8. **Updates:** push to GitHub → Vercel redeploys automatically. When a release adds a migration, run `npm run db:supabase-sql` and paste only the new migration section(s), or run `npm run db:migrate` from a computer.
+
+## Terminal alternative
 
 1. **Create the database.** Supabase: new project → Settings → Database → copy the *direct* connection string (owner) and the *transaction pooler* string (port 6543). Neon: copy the direct and the pooled strings.
 2. **Create the app role and schema** from your machine or CI (never from Vercel):
