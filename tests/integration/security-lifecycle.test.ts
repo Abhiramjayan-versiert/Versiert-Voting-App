@@ -69,7 +69,10 @@ describe("election management rules", () => {
     const f = await makeElection({ status: "draft", startH: 1, endH: 6, voters: 0 });
     const ctx = ctxFor(f.collegeId);
     await expect(E.activate(ctx, actor, f.electionId)).rejects.toThrow(/Import at least one eligible voter/);
-    await E.addVoter(ctx, actor, f.electionId, "new@t.test", null, null, null);
+    await expect(E.addVoter(ctx, actor, f.electionId, "noid@t.test", null, null, null)).rejects.toThrow(/student's ID/);
+    await E.addVoter(ctx, actor, f.electionId, "new@t.test", null, " new 01 ", null);
+    expect((await ownerDb()`select student_id from voters where email = 'new@t.test' and election_id = ${f.electionId}`)[0].student_id).toBe("NEW01");
+    await expect(E.addVoter(ctx, actor, f.electionId, "other@t.test", null, "NEW01", null)).rejects.toThrow(/already on the voter list/);
     await E.activate(ctx, actor, f.electionId);
     await expect(E.upsertPosition(ctx, actor, f.electionId, null, { name: "Late", max_selections: 1, eligible_groups: null })).rejects.toThrow(/activated/);
     await expect(E.deleteCandidate(ctx, actor, f.electionId, f.positions[0].cands[0])).rejects.toThrow(/activated/);

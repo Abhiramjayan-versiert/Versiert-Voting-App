@@ -19,3 +19,9 @@ export function domainAllowed(email: string, domains: string[]) {
   const d = emailDomain(email);
   return domains.some((x) => d === x.toLowerCase() || d.endsWith("." + x.toLowerCase()));
 }
+
+/** Canonical student ID: NFKC, upper-case, all whitespace removed. Used for matching voters. */
+export function normalizeStudentId(v: unknown) {
+  if (typeof v !== "string") return "";
+  return v.normalize("NFKC").replace(/\s+/g, "").toUpperCase().slice(0, 40);
+}

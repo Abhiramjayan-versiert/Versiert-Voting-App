@@ -42,14 +42,13 @@ export default async function Config() {
               <div />
               {num("admin_session_hours", "Administrator session length (hours)")}
               {num("voter_session_minutes", "Voter session length (minutes)")}
-              {num("otp_ttl_minutes", "Voter code lifetime (minutes)")}
-              {num("otp_max_attempts", "Voter code attempts before lockout")}
+                            {num("otp_max_attempts", "Voter verification attempts per email per hour")}
             </div>
           </section>
           <section>
             <h2 className="text-lg font-semibold">Rate limits & imports</h2>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              {num("rate_otp_per_ip_per_hour", "Voter code requests per network per hour", "Campus Wi-Fi shares one IP — keep this generous.")}
+              {num("rate_otp_per_ip_per_hour", "Voter verification attempts per network per hour", "Campus Wi-Fi shares one IP — keep this generous.")}
               {num("rate_login_per_ip_per_15min", "Admin sign-in attempts per network per 15 min")}
               {num("max_import_rows", "Maximum rows per voter import")}
               {num("max_import_mb", "Maximum import file size (MB)", "Hard ceiling 4 MB — Vercel's request body limit is 4.5 MB.")}
@@ -58,7 +57,7 @@ export default async function Config() {
           <section>
             <h2 className="text-lg font-semibold">Features & notifications</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <Check name="email_notifications_enabled" label="Email notifications" description="Invitations, reminders and administrator alerts. One-time codes are always sent." defaultChecked={c.email_notifications_enabled} />
+              <Check name="email_notifications_enabled" label="Email notifications" description="Invitations, reminders and administrator alerts (only if an email provider is configured)." defaultChecked={c.email_notifications_enabled} />
               <Check name="feature_candidate_photos" label="Candidate photographs" defaultChecked={c.feature_candidate_photos} />
               <Check name="feature_open_ballot" label="Allow open (non-secret) ballots" description="When off, every election is a secret ballot." defaultChecked={c.feature_open_ballot} />
             </div>

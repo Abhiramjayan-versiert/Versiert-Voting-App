@@ -10,12 +10,12 @@ describe("spreadsheet import", () => {
     expect(guessMapping(["Roll No", "Student Name", "E-mail", "Department"])).toEqual({ email: 2, name: 1, studentId: 0, group: 3 });
   });
   it("validates rows: missing, invalid, duplicate, domain", () => {
-    const sheet = parseSpreadsheet(csv("Name,Email\nA,a@college.edu\nB,\nC,not-an-email\nD,A@College.edu\nE,e@gmail.com\nF,f@college.edu"), "list.csv", 100);
-    const v = validateRows(sheet, { email: 1, name: 0 }, ["college.edu"]);
-    expect(v.total).toBe(6);
-    expect(v.accepted.map((a) => a.email)).toEqual(["a@college.edu", "f@college.edu"]);
-    expect(v.duplicates).toBe(1);
-    expect(v.rejected.map((r) => [r.row, r.reason.split(" ")[0]])).toEqual([[3, "Missing"], [4, "Invalid"], [5, "Duplicate"], [6, "Email"]]);
+    const sheet = parseSpreadsheet(csv("Name,Email,Roll\nA,a@college.edu,r 01\nB,,R02\nC,not-an-email,R03\nD,A@College.edu,R04\nE,e@gmail.com,R05\nF,f@college.edu,R06\nG,g@college.edu,\nH,h@college.edu,r01\nI,i@college.edu,X1"), "list.csv", 100);
+    const v = validateRows(sheet, { email: 1, name: 0, studentId: 2 }, ["college.edu"]);
+    expect(v.total).toBe(9);
+    expect(v.accepted.map((a) => [a.email, a.studentId])).toEqual([["a@college.edu", "R01"], ["f@college.edu", "R06"]]);
+    expect(v.duplicates).toBe(2);
+    expect(v.rejected.map((r) => [r.row, r.reason.split(" ")[0]])).toEqual([[3, "Missing"], [4, "Invalid"], [5, "Duplicate"], [6, "Email"], [8, "Missing"], [9, "Student"], [10, "Student"]]);
   });
   it("reads xlsx and does not evaluate formulas", async () => {
     const wb = new ExcelJS.Workbook(); const ws = wb.addWorksheet("Voters");
@@ -24,8 +24,7 @@ describe("spreadsheet import", () => {
     const s = parseSpreadsheet(buf, "v.xlsx", 100);
     expect(s.headers).toEqual(["Email", "Name"]);
     expect(s.rows[0][0]).toBe("x@college.edu");
-    const v = validateRows(s, { email: 0 }, []);
-    expect(v.accepted).toHaveLength(1);
+    expect(() => validateRows(s, { email: 0 }, [])).toThrow(/student IDs/);
   });
   it("rejects disguised and binary files", () => {
     expect(() => detectKind(new Uint8Array([0x50, 0x4b, 0x03, 0x04]), "list.csv")).toThrow(ImportError);

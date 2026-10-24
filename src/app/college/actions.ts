@@ -95,8 +95,9 @@ export async function previewImportAction(_: ActionState, fd: FormData): Promise
     const guess = guessMapping(sheet.headers);
     const m = mappingFrom(fd, guess);
     const [col] = await withCtx(ctx, (tx) => tx`select email_domains from colleges where id = ${e.college_id}`);
-    const v = m.email >= 0 ? validateRows(sheet, m, col.email_domains) : null;
-    return { ok: true, data: {
+    const mapped = m.email >= 0 && m.studentId != null && m.studentId >= 0;
+    const v = mapped ? validateRows(sheet, m, col.email_domains) : null;
+    return { ok: true, message: mapped ? undefined : "Choose the email and student ID columns below, then press “Re-check with these columns”.", data: {
       filename: name, headers: sheet.headers, sample: sheet.rows.slice(0, 8), total: sheet.rows.length, truncated: sheet.truncated, maxRows, mapping: m,
       accepted: v?.accepted.length ?? 0, rejected: v?.rejected.slice(0, 1000) ?? [], rejectedCount: v?.rejected.length ?? 0, duplicates: v?.duplicates ?? 0,
     } };
@@ -115,7 +116,8 @@ export async function commitImportAction(_: ActionState, fd: FormData): Promise<
     filename = name;
     const m = mappingFrom(fd, guessMapping(sheet.headers));
     const [col] = await withCtx(ctx, (tx) => tx`select email_domains from colleges where id = ${e.college_id}`);
-    const v = validateRows(sheet, m, col.email_domains);
+    let v: ReturnType<typeof validateRows>;
+    try { v = validateRows(sheet, m, col.email_domains); } catch (err) { if (err instanceof ImportError) throw new UserError(err.message); throw err; }
     if (v.accepted.length === 0) throw new UserError("No valid rows to import. Fix the file and try again.");
     const r = await E.commitImport(ctx, a, e.id, name, v, { ...m, headers: sheet.headers });
     refresh(e);

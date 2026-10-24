@@ -1,5 +1,5 @@
 import * as XLSX from "@e965/xlsx";
-import { normalizeEmail, domainAllowed } from "./email-normalize";
+import { normalizeEmail, domainAllowed, normalizeStudentId } from "./email-normalize";
 
 export type Mapping = { email: number; name?: number | null; studentId?: number | null; group?: number | null };
 export type ParsedSheet = { headers: string[]; rows: string[][]; sheetName: string; truncated: boolean };
@@ -63,7 +63,9 @@ export function guessMapping(headers: string[]): Partial<Mapping> {
 
 export function validateRows(sheet: ParsedSheet, m: Mapping, allowedDomains: string[]): ValidatedImport {
   if (m.email == null || m.email < 0 || m.email >= sheet.headers.length) throw new ImportError("Choose which column contains email addresses.");
+  if (m.studentId == null || m.studentId < 0 || m.studentId >= sheet.headers.length) throw new ImportError("Choose which column contains student IDs — students verify with their email and student ID.");
   const seen = new Set<string>();
+  const seenIds = new Set<string>();
   const out: ValidatedImport = { total: sheet.rows.length, accepted: [], rejected: [], duplicates: 0 };
   sheet.rows.forEach((r, i) => {
     const row = i + 2; // header is row 1
@@ -74,9 +76,13 @@ export function validateRows(sheet: ParsedSheet, m: Mapping, allowedDomains: str
     if (!email) { out.rejected.push({ row, reason: "Invalid email format", raw }); return; }
     if (!domainAllowed(email, allowedDomains)) { out.rejected.push({ row, reason: `Email domain is not an approved college domain (${allowedDomains.join(", ")})`, raw }); return; }
     if (seen.has(email)) { out.duplicates++; out.rejected.push({ row, reason: "Duplicate of an earlier row", raw }); return; }
-    seen.add(email);
+    const sid = normalizeStudentId(r[m.studentId!]);
+    if (!sid) { out.rejected.push({ row, reason: "Missing student ID", raw }); return; }
+    if (sid.length < 3) { out.rejected.push({ row, reason: "Student ID is too short (minimum 3 characters)", raw }); return; }
+    if (seenIds.has(sid)) { out.duplicates++; out.rejected.push({ row, reason: "Student ID already used by an earlier row", raw }); return; }
+    seen.add(email); seenIds.add(sid);
     const pick = (k?: number | null) => (k == null || k < 0 ? null : r[k] || null);
-    out.accepted.push({ email, name: pick(m.name), studentId: pick(m.studentId), group: pick(m.group), row });
+    out.accepted.push({ email, name: pick(m.name), studentId: sid, group: pick(m.group), row });
   });
   return out;
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeEmail, domainAllowed } from "@/lib/email-normalize";
+import { normalizeEmail, domainAllowed, normalizeStudentId } from "@/lib/email-normalize";
 
 describe("email normalisation", () => {
   it("trims, lower-cases and NFKC-normalises", () => {
@@ -15,6 +15,11 @@ describe("email normalisation", () => {
   });
   it("rejects invalid input", () => {
     for (const bad of ["", "no-at-sign", "a@", "@b.edu", "a b@c.edu", null, 42, "x".repeat(250) + "@a.edu", "ünï@college.edu"]) expect(normalizeEmail(bad)).toBeNull();
+  });
+  it("normalises student IDs (case, spaces, full-width)", () => {
+    expect(normalizeStudentId(" tve 25 mba03 ")).toBe("TVE25MBA03");
+    expect(normalizeStudentId("ＴＶＥ２５")).toBe("TVE25");
+    expect(normalizeStudentId(null)).toBe("");
   });
   it("checks approved domains including subdomains", () => {
     expect(domainAllowed("a@college.edu", ["college.edu"])).toBe(true);

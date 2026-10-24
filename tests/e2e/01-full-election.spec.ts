@@ -14,11 +14,11 @@ let collegePath = "", electionPath = "", slug = "", publicRef = "";
 async function voterXlsx() {
   const wb = new ExcelJS.Workbook(); const ws = wb.addWorksheet("Students");
   ws.addRow(["Roll No", "Student Name", "Email Address", "Department"]);
-  for (let i = 1; i <= 5; i++) ws.addRow([`R${i}`, `E2E Student ${i}`, `voter${i}@e2e-college.test`, i % 2 ? "CSE" : "ECE"]);
-  ws.addRow(["R6", "Dup", "VOTER1@e2e-college.test", "CSE"]);   // duplicate (case-insensitive)
-  ws.addRow(["R7", "Bad", "not-an-email", "CSE"]);               // invalid
-  ws.addRow(["R8", "Missing", "", "CSE"]);                       // missing
-  ws.addRow(["R9", "Outsider", "someone@gmail.com", "CSE"]);     // wrong domain
+  for (let i = 1; i <= 5; i++) ws.addRow([`ROLL${i}`, `E2E Student ${i}`, `voter${i}@e2e-college.test`, i % 2 ? "CSE" : "ECE"]);
+  ws.addRow(["ROLL6", "Dup", "VOTER1@e2e-college.test", "CSE"]);   // duplicate (case-insensitive)
+  ws.addRow(["ROLL7", "Bad", "not-an-email", "CSE"]);               // invalid
+  ws.addRow(["ROLL8", "Missing", "", "CSE"]);                       // missing
+  ws.addRow(["ROLL9", "Outsider", "someone@gmail.com", "CSE"]);     // wrong domain
   return Buffer.from(await wb.xlsx.writeBuffer());
 }
 
@@ -173,13 +173,17 @@ test("8–13. Students verify, vote once per position, duplicates rejected", asy
   await c.waitForURL(new RegExp(`/e/${slug}/done`));
   await ctx2.close();
 
-  // An address not on the list gets the same neutral response and no code.
+  // Unknown email and wrong student ID get the same neutral response; neither opens a ballot.
   const ctx3 = await browser.newContext(); const d = await ctx3.newPage();
-  await d.goto(`/e/${slug}/verify`);
-  await d.fill("#email", "stranger@e2e-college.test"); await d.click("button:has-text('Send verification code')");
-  await expect(d.getByText(/If this address is on the voter list/)).toBeVisible();
-  await d.goto(`/dev/inbox?email=stranger@e2e-college.test`);
-  await expect(d.getByText(/No messages for/)).toBeVisible();
+  for (const [em, id] of [["stranger@e2e-college.test", "ROLL1"], ["voter3@e2e-college.test", "ROLL4"]]) {
+    await d.goto(`/e/${slug}/verify`);
+    await d.fill("#email", em); await d.fill("#student_id", id);
+    await d.click("button:has-text('Verify and open ballot')");
+    await expect(d.getByText(/couldn't verify those details/)).toBeVisible();
+    await expect(d).toHaveURL(new RegExp(`/e/${slug}/verify`));
+  }
+  // Student IDs are matched case- and space-insensitively.
+  await verifyVoter(d, ctx3, slug, "voter3@e2e-college.test", " roll 3 ");
   await ctx3.close();
 });
 

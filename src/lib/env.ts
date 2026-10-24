@@ -28,9 +28,10 @@ export function env() {
     if (/dev-only|change-me/i.test(e.HMAC_SECRET + e.ENCRYPTION_KEY + e.CRON_SECRET)) {
       throw new Error("Development secrets detected in production configuration");
     }
-    if (!e.RESEND_API_KEY || !e.EMAIL_FROM) throw new Error("RESEND_API_KEY and EMAIL_FROM are required in production");
   }
   cached = e;
   return e;
 }
 export const isTestMode = () => env().APP_MODE === "test";
+/** Email is optional. Without a provider, invitation/reset links are shown on screen to the Super Admin instead. */
+export const emailEnabled = () => isTestMode() || !!(env().RESEND_API_KEY && env().EMAIL_FROM);

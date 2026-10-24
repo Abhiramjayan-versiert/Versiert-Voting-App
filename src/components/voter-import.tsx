@@ -65,7 +65,7 @@ export function VoterImport({ electionId, previewAction, commitAction, maxMb }: 
             <h3 className="font-medium">Match your columns</h3>
             <p className="text-sm text-g500">We guessed from the headers. Change any mapping, then re-check.</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-4">
-              {([["map_email", "Email (required)", p.mapping.email, false], ["map_name", "Name", p.mapping.name, true], ["map_student_id", "Student ID", p.mapping.studentId, true], ["map_group", "Group / department", p.mapping.group, true]] as const).map(([n, l, v, none]) => (
+              {([["map_email", "Email (required)", p.mapping.email, false], ["map_name", "Name", p.mapping.name, true], ["map_student_id", "Student ID (required)", p.mapping.studentId, false], ["map_group", "Group / department", p.mapping.group, true]] as const).map(([n, l, v, none]) => (
                 <div key={n}><label htmlFor={n} className="text-sm font-medium">{l}</label>
                   <select id={n} name={n} defaultValue={v ?? -1} className="mt-1 h-10 w-full rounded-lg border border-g300 px-2 text-sm">{opt(v, none)}</select></div>
               ))}
@@ -94,6 +94,7 @@ export function VoterImport({ electionId, previewAction, commitAction, maxMb }: 
         </div>
       )}
 
+      {pState?.ok && pState.message && !committed && <Notice tone="warning">{pState.message}</Notice>}
       {pState?.error && <Notice tone="error">{pState.error}</Notice>}
       {cState?.error && <Notice tone="error">{cState.error}</Notice>}
       {committed && (

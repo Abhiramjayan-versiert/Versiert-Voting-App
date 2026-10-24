@@ -7,7 +7,7 @@ import { forgotAction } from "../actions";
 export const metadata = { title: "Reset password" };
 export default function Forgot() {
   return (
-    <AuthShell title="Reset your password" subtitle="We'll email a single-use link to college administrator accounts. Platform owners use the documented recovery procedure.">
+    <AuthShell title="Reset your password" subtitle="We'll email a single-use link to college administrator accounts if email is set up. Otherwise ask your platform administrator to issue a reset link from the developer console.">
       <ActionForm action={forgotAction} className="space-y-5" resetOnSuccess>
         <Field label="Account email" htmlFor="email"><Input id="email" name="email" type="email" autoComplete="email" required /></Field>
         <SubmitButton className="w-full" pendingText="Sending…">Send reset link</SubmitButton>

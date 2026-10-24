@@ -10,7 +10,7 @@
 | Passwords | Argon2id (19 MiB, t=2), 12+ chars, common-password and email-name checks, lockout after 5 failures (15 min), timing-equalised unknown-account path. |
 | MFA | RFC 6238 TOTP, mandatory for Super Admin, optional/required (policy) for college admins; secrets AES-256-GCM encrypted; replayed codes rejected. |
 | Sessions | 256-bit random tokens, only SHA-256 stored, `HttpOnly`, `SameSite`, `Secure` + `__Host-` prefix in production, idle tracking, revocation (self, Super Admin, password change). |
-| Voter verification | Email OTP (HMAC-stored, 10 min, 5 attempts), uniform responses and timing, short path-scoped sessions. |
+| Voter verification | College email + student ID matched against the voter list (constant-time HMAC compare), identical errors for unknown email/wrong ID, 5 attempts per email per hour + per-network limit, short path-scoped sessions. |
 | CSRF | Server Actions' built-in Origin check; explicit same-origin check on the vote route; `SameSite` cookies. |
 | XSS | React escaping; no user HTML rendered; CSP (`frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`). |
 | SQL injection | Parameterised tagged-template queries throughout. |
@@ -32,7 +32,7 @@
 ## Known limitations
 
 1. **Not a cryptographic voting protocol.** Secret-ballot privacy relies on schema separation, grants and RLS. A DBA with owner access could attempt correlation via physical row order. No end-to-end verifiability.
-2. **Email ≠ identity.** Verification proves inbox control, not who holds the device or freedom from coercion. Integrate institutional SSO for higher assurance.
+2. **Email + student ID is a shared-knowledge check.** Anyone who knows both values for a student can vote as them; it cannot detect coercion. Keep voter lists private and use emailed codes or institutional SSO for higher-assurance elections.
 3. **Small electorates** can reveal choices through totals; live tallies can leak the latest choice in low-traffic periods (configurable, warned).
 4. **CSP allows `'unsafe-inline'` scripts** (Next.js hydration). A nonce-based CSP via `proxy.ts` is a recommended hardening step.
 5. **Rate limits are per network.** Campus NAT can make many students share one IP; defaults are generous and configurable.
@@ -48,7 +48,8 @@
 - [ ] `DATABASE_URL` uses role `vapp_app` via the pooler; `DATABASE_OWNER_URL` is **not** in Vercel
 - [ ] `npm run db:migrate` applied; `npm run db:seed` **never** run against production (it refuses unless `APP_MODE=test`)
 - [ ] Super Admin bootstrapped, MFA enrolled, temporary password changed
-- [ ] Resend domain verified (SPF/DKIM), test email received, sending quota sufficient
+- [ ] (Optional) Resend domain verified if you want emailed invitations/resets
+- [ ] Students told to keep their student ID private during the election
 - [ ] Backups/PITR enabled; retention ≤ shortest election retention where possible; restore rehearsed once
 - [ ] Cron jobs visible in Vercel → Settings → Cron Jobs; Health page shows recent runs
 - [ ] Configuration reviewed: retention choices, MFA policy, rate limits, open-ballot feature flag

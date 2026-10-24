@@ -149,6 +149,6 @@ console.log(`
   College admins   ${DEMO.admins.map((a) => a.email).join(", ")} / ${DEMO.admins[0].password}
   Open election    /e/northfield-union-2026   voters student001…student060@northfield.test (001–030 haven't voted)
   Results pending  Sports Council Election 2026 (has a tie)
-  Voter codes      /dev/inbox (test mode only)
+  Voter login      email + student ID, e.g. student001@northfield.test / T0001
 `);
 await sql.end();

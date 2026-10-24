@@ -1,23 +1,20 @@
 import "server-only";
 import { cookies } from "next/headers";
-import { after } from "next/server";
 import { sql, withCtx, systemCtx } from "./db";
 import { env, isTestMode } from "./env";
-import { hmac, numericCode, randomToken, safeEqual, sha256 } from "./crypto";
-import { normalizeEmail } from "./email-normalize";
+import { hmac, randomToken, safeEqual, sha256 } from "./crypto";
+import { normalizeEmail, normalizeStudentId } from "./email-normalize";
+export { normalizeStudentId };
 import { getConfig } from "./config";
 import { rateLimit } from "./ratelimit";
-import { sendMailNow } from "./mailer";
 import { securityEvent } from "./audit";
 import { effectiveStatus } from "./lifecycle";
 
 export const VOTER_COOKIE = "vapp_voter";
-export const GENERIC_CODE_SENT =
-  "If this address is on the voter list for this election, a 6-digit code is on its way. Please check your email or contact your election administrator if you need assistance.";
-export const GENERIC_CODE_INVALID = "That code is invalid or has expired. Request a new code, or contact your election administrator if you need assistance.";
+export const GENERIC_INVALID =
+  "We couldn't verify those details for this election. Check your college email and student ID, or contact your election administrator if you need assistance.";
 
 const emailKey = (electionId: string, email: string) => hmac(env().HMAC_SECRET, `voter:${electionId}:${email}`);
-const codeHash = (challengeId: string, code: string) => hmac(env().HMAC_SECRET, `otp:${challengeId}:${code}`);
 
 export async function electionBySlug(slug: string) {
   if (!/^[a-z0-9][a-z0-9-]{3,80}$/.test(slug)) return null;
@@ -30,89 +27,45 @@ export async function electionBySlug(slug: string) {
   return { ...e, effective: effectiveStatus(e as never) } as Record<string, any>;
 }
 
-export async function verifyTurnstile(token: string | undefined, ip: string) {
-  const secret = env().TURNSTILE_SECRET_KEY;
-  if (!secret) return true;
-  if (!token) return false;
-  try {
-    const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-      method: "POST", body: new URLSearchParams({ secret, response: token, remoteip: ip }), signal: AbortSignal.timeout(5000),
-    });
-    return ((await r.json()) as { success?: boolean }).success === true;
-  } catch { return false; }
-}
-
-export type CodeRequestResult = { ok: boolean; message: string; captchaRequired?: boolean };
-
-export async function requestVoterCode(slug: string, rawEmail: string, ipHash: string, ip: string, captchaToken?: string): Promise<CodeRequestResult> {
-  const cfg = await getConfig();
-  const e = await electionBySlug(slug);
-  if (!e) return { ok: false, message: "This election link is not available." };
-  if (e.effective !== "open") return { ok: false, message: "Voting is not open for this election right now." };
-  const email = normalizeEmail(rawEmail);
-  if (!email) return { ok: false, message: "Enter a valid email address." };
-
-  const ipLimit = await rateLimit(`otp-ip:${ipHash}`, cfg.rate_otp_per_ip_per_hour, 3600);
-  if (!ipLimit.ok) {
-    await securityEvent({ kind: "otp_rate_limited", severity: "warning", collegeId: e.college_id, electionId: e.id, ipHash });
-    return { ok: false, message: "Too many requests from this network. Please wait and try again later." };
-  }
-  // Suspicious volume from one network → require a human challenge when Turnstile is configured.
-  if (env().TURNSTILE_SECRET_KEY && ipLimit.count > 5 && !(await verifyTurnstile(captchaToken, ip))) {
-    return { ok: false, message: "Please complete the verification challenge.", captchaRequired: true };
-  }
-  const key = emailKey(e.id, email);
-  const perEmail = await rateLimit(`otp-email:${key}`, 5, 3600);
-  if (!perEmail.ok) return { ok: true, message: GENERIC_CODE_SENT }; // stay uniform; don't send more mail
-
-  const ttl = cfg.otp_ttl_minutes;
-  await withCtx(systemCtx, async (tx) => {
-    const [voter] = await tx`select id from voters where election_id = ${e.id} and email = ${email}`;
-    const code = numericCode(6);
-    const [ch] = await tx`insert into otp_challenges (election_id, email_hmac, voter_id, code_hash, expires_at)
-                          values (${e.id}, ${key}, ${voter?.id ?? null}, 'pending', now() + make_interval(mins => ${ttl})) returning id`;
-    await tx`update otp_challenges set code_hash = ${codeHash(ch.id, code)} where id = ${ch.id}`;
-    // Invalidate older outstanding codes for this address.
-    await tx`update otp_challenges set consumed_at = now() where election_id = ${e.id} and email_hmac = ${key} and id <> ${ch.id} and consumed_at is null`;
-    if (voter) {
-      const text = `Your V.app verification code for "${e.title}" is ${code}.\n\nIt expires in ${ttl} minutes. Never share this code — election staff will never ask for it.\n\nIf you didn't request this, you can ignore this email.\n\n— V.app · Your campus. Your choice.`;
-      // Sent after the response so valid and invalid addresses take the same time to answer.
-      after(async () => { await sendMailNow({ to: email, subject: `${code} is your V.app voting code`, text }); });
-    }
-  });
-  return { ok: true, message: GENERIC_CODE_SENT };
-}
-
-export async function verifyVoterCode(slug: string, rawEmail: string, rawCode: string, ipHash: string) {
+/**
+ * Verifies a voter by college email + student ID, both of which must match the election's
+ * voter list. No email is sent. Responses are identical for unknown emails and wrong IDs,
+ * and attempts are limited per email address and per network to stop guessing.
+ */
+export async function verifyVoterIdentity(slug: string, rawEmail: string, rawStudentId: string, ipHash: string) {
   const cfg = await getConfig();
   const e = await electionBySlug(slug);
   if (!e || e.effective !== "open") return { ok: false, message: "Voting is not open for this election right now." };
   const email = normalizeEmail(rawEmail);
-  const code = (rawCode ?? "").replace(/\D/g, "");
-  if (!email || code.length !== 6) return { ok: false, message: GENERIC_CODE_INVALID };
-  const lim = await rateLimit(`otp-verify-ip:${ipHash}`, 60, 3600);
-  if (!lim.ok) return { ok: false, message: "Too many attempts. Please wait and try again later." };
+  const sid = normalizeStudentId(rawStudentId);
+  if (!email || !sid) return { ok: false, message: "Enter your college email and your student ID." };
 
+  const net = await rateLimit(`verify-ip:${ipHash}`, cfg.rate_otp_per_ip_per_hour, 3600);
+  if (!net.ok) {
+    await securityEvent({ kind: "verify_rate_limited", severity: "warning", collegeId: e.college_id, electionId: e.id, ipHash });
+    return { ok: false, message: "Too many attempts from this network. Please wait and try again later." };
+  }
   const key = emailKey(e.id, email);
-  const result = await withCtx(systemCtx, async (tx) => {
-    const [ch] = await tx`select * from otp_challenges where election_id = ${e.id} and email_hmac = ${key}
-                           and consumed_at is null and expires_at > now() order by created_at desc limit 1 for update`;
-    if (!ch) return null;
-    if (ch.attempts >= cfg.otp_max_attempts) return null;
-    await tx`update otp_challenges set attempts = attempts + 1 where id = ${ch.id}`;
-    if (!ch.voter_id || !safeEqual(ch.code_hash, codeHash(ch.id, code))) {
-      if (ch.attempts + 1 >= cfg.otp_max_attempts) {
-        await securityEvent({ kind: "otp_attempts_exhausted", severity: "warning", collegeId: e.college_id, electionId: e.id, ipHash }, tx);
-      }
-      return null;
+  const per = await rateLimit(`verify-email:${key}`, cfg.otp_max_attempts, 3600);
+  if (!per.ok) {
+    if (per.count === cfg.otp_max_attempts + 1) {
+      await securityEvent({ kind: "verify_attempts_exhausted", severity: "warning", collegeId: e.college_id, electionId: e.id, ipHash, requiresReview: false });
     }
-    await tx`update otp_challenges set consumed_at = now() where id = ${ch.id}`;
+    return { ok: false, message: "Too many attempts for this email. Please wait an hour or contact your election administrator." };
+  }
+
+  const result = await withCtx(systemCtx, async (tx) => {
+    const [v] = await tx`select id, student_id from voters where election_id = ${e.id} and email = ${email}`;
+    // Compare in constant time against a keyed hash so timing doesn't reveal which part was wrong.
+    const expected = hmac(env().HMAC_SECRET, "sid:" + normalizeStudentId(v?.student_id ?? "\u0000no-voter"));
+    const given = hmac(env().HMAC_SECRET, "sid:" + sid);
+    if (!v || !v.student_id || !safeEqual(expected, given)) return null;
     const token = randomToken();
     const expires = new Date(Date.now() + cfg.voter_session_minutes * 60_000);
-    await tx`insert into voter_sessions (token_hash, voter_id, election_id, expires_at) values (${sha256(token)}, ${ch.voter_id}, ${e.id}, ${expires})`;
+    await tx`insert into voter_sessions (token_hash, voter_id, election_id, expires_at) values (${sha256(token)}, ${v.id}, ${e.id}, ${expires})`;
     return { token, expires };
   });
-  if (!result) return { ok: false, message: GENERIC_CODE_INVALID };
+  if (!result) return { ok: false, message: GENERIC_INVALID };
   (await cookies()).set(VOTER_COOKIE, result.token, {
     httpOnly: true, secure: !isTestMode(), sameSite: "strict", path: `/e/${slug}`, expires: result.expires,
   });

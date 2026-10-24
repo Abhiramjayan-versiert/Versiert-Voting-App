@@ -6,7 +6,7 @@
 |---|---|---|
 | **Vercel** | Hosts the Next.js app and runs cron jobs | Hobby: crons limited to once/day (±59 min), 300 s max function duration. Pro: per-minute crons, longer durations. Request/response bodies are capped at 4.5 MB — V.app limits uploads to 4 MB. |
 | **PostgreSQL 14+** (Supabase or Neon recommended) | All data, including images | Free tiers have storage/compute caps and limited backup retention; production elections should use a paid tier with PITR. |
-| **Resend** | Transactional email | Free tier has daily/monthly sending caps — size it to your voter lists (invitations + one code per voter attempt). |
+| **Resend** (optional) | Admin invitation/reset emails, voter reminders | Not needed: voters verify with email + student ID and links are shown on screen without it. |
 | Cloudflare Turnstile (optional) | Bot challenge | Free. |
 
 No object storage is required: uploaded spreadsheets are processed in memory and never stored; candidate photos, banners and logos (≤ 800 KB each) are stored in PostgreSQL and deleted with their rows. Nothing depends on the local filesystem.
@@ -22,7 +22,7 @@ No object storage is required: uploaded spreadsheets are processed in memory and
    ```
 3. **Build the runtime URL** using role `vapp_app` and `APP_DB_PASSWORD` on the **pooled** host. Supabase's pooler expects the username in the form `<role>.<project-ref>` (the same pattern as `postgres.<project-ref>` shown in its dashboard) — confirm in the Supabase connection docs for your project. Example: `postgres://vapp_app.abcdefgh:<APP_DB_PASSWORD>@aws-0-ap-south-1.pooler.supabase.com:6543/postgres`.
 4. **Generate secrets:** `node -e "for (const k of ['HMAC_SECRET','ENCRYPTION_KEY','CRON_SECRET']) console.log(k+'='+require('crypto').randomBytes(32).toString('base64'))"`
-5. **Vercel project:** import the repository → Framework *Next.js* → set environment variables (Production): `APP_MODE=production`, `APP_URL=https://<your-domain>`, `DATABASE_URL`, `HMAC_SECRET`, `ENCRYPTION_KEY`, `CRON_SECRET`, `RESEND_API_KEY`, `EMAIL_FROM`, optional Turnstile keys. Do **not** add `DATABASE_OWNER_URL` or `APP_DB_PASSWORD`.
+5. **Vercel project:** import the repository → Framework *Next.js* → set environment variables (Production): `APP_MODE=production`, `APP_URL=https://<your-domain>`, `DATABASE_URL`, `HMAC_SECRET`, `ENCRYPTION_KEY`, `CRON_SECRET`, optional `RESEND_API_KEY` + `EMAIL_FROM`. Do **not** add `DATABASE_OWNER_URL` or `APP_DB_PASSWORD`.
 6. **Region:** `vercel.json` pins functions to `bom1` (Mumbai). Pick the region closest to your database.
 7. **Cron:** `vercel.json` schedules both jobs daily (Hobby-compatible). On Pro, replace it with `vercel.pro.json` for 5-minute lifecycle ticks. Vercel automatically sends `Authorization: Bearer $CRON_SECRET`. On Hobby, you can additionally trigger `/api/cron/tick` from any external scheduler that can send that header, or use *Jobs & cleanup → Deliver emails* in the console.
 8. **Deploy**, then provision the platform owner from your machine:

@@ -38,7 +38,7 @@ export default async function Voters({ params, searchParams }: { params: Promise
           {canImport && (
             <Card>
               <h2 className="text-lg font-semibold">Import eligible voters</h2>
-              <p className="mt-1 mb-5 text-sm text-g600">Emails are normalised (trimmed, lower-cased) and must be unique. {d.domains.length ? <>Only <strong>{d.domains.join(", ")}</strong> addresses are accepted.</> : "Any email domain is accepted for this college."} Re-importing adds new addresses and skips existing ones.</p>
+              <p className="mt-1 mb-5 text-sm text-g600">Required columns: <strong>email</strong> and <strong>student ID</strong> — students verify with both, so keep student IDs private. Emails and IDs must be unique. {d.domains.length ? <>Only <strong>{d.domains.join(", ")}</strong> addresses are accepted.</> : "Any email domain is accepted for this college."} Re-importing adds new addresses and skips existing ones.</p>
               <VoterImport electionId={eid} previewAction={previewImportAction} commitAction={commitImportAction} maxMb={cfg.max_import_mb} />
             </Card>
           )}
@@ -79,7 +79,7 @@ export default async function Voters({ params, searchParams }: { params: Promise
                 <Field label="College email" htmlFor="v-email"><Input id="v-email" name="email" type="email" required /></Field>
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Name" htmlFor="v-name" optional><Input id="v-name" name="name" maxLength={120} /></Field>
-                  <Field label="Student ID" htmlFor="v-sid" optional><Input id="v-sid" name="student_id" maxLength={40} /></Field>
+                  <Field label="Student ID" htmlFor="v-sid"><Input id="v-sid" name="student_id" maxLength={40} required /></Field>
                 </div>
                 <Field label="Group / department" htmlFor="v-group" optional><Input id="v-group" name="voter_group" maxLength={60} /></Field>
                 <SubmitButton size="sm">Add voter</SubmitButton>

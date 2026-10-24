@@ -92,7 +92,7 @@ ${manual.map((m) => `| ${m.check} | ${m.expected} | ${m.actual} (${m.when}) | **
 |---|---|
 | Unauthorised user → Super Admin dashboard | E2E security: unauthenticated users…; password alone never reaches…; college administrator cannot access the Super Admin console |
 | College admin → another college's data | E2E security: …changing URLs or API paths; Integration: tenant isolation (3 tests) |
-| Vote without email verification | E2E security: voting requires email verification…; E2E workflow step 8 |
+| Vote without matching email + student ID | E2E security: voting requires email verification…; E2E workflow step 8 |
 | Unpublished results page | E2E security: unpublished results are not visible… |
 | Changing a candidate ID in a request | E2E security: tampered candidate IDs…; Integration: rejects a candidate from another position or election |
 | Duplicate and simultaneous submissions | Integration: 50 concurrent submissions…; E2E workflow steps 10–11 |

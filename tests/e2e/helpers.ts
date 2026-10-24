@@ -36,23 +36,16 @@ export async function loginAdmin(page: Page, email: string, password: string) {
   await page.click("button[type=submit]"); await page.waitForURL(/\/college\//);
 }
 
-export async function readCode(ctx: BrowserContext, email: string) {
-  const p = await ctx.newPage();
-  for (let i = 0; i < 20; i++) {
-    await p.goto(`/dev/inbox?email=${encodeURIComponent(email)}`);
-    const t = await p.locator("article pre").first().textContent().catch(() => null);
-    const m = t?.match(/\b(\d{6})\b/);
-    if (m) { await p.close(); return m[1]; }
-    await p.waitForTimeout(500);
-  }
-  throw new Error("no code for " + email);
+/** Student ID for a fixture address: studentNNN@northfield.test → T0NNN, voterN@e2e-college.test → ROLLN. */
+export function sidFor(email: string) {
+  const m = email.match(/^student(\d+)@/); if (m) return "T" + m[1].padStart(4, "0");
+  const v = email.match(/^voter(\d+)@/); if (v) return "ROLL" + v[1];
+  throw new Error("no fixture student ID for " + email);
 }
 
-export async function verifyVoter(page: Page, ctx: BrowserContext, slug: string, email: string) {
+export async function verifyVoter(page: Page, _ctx: BrowserContext, slug: string, email: string, studentId = sidFor(email)) {
   await page.goto(`/e/${slug}/verify`);
-  await page.fill("#email", email); await page.click("button:has-text('Send verification code')");
-  await page.waitForSelector("#code");
-  await page.fill("#code", await readCode(ctx, email));
+  await page.fill("#email", email); await page.fill("#student_id", studentId);
   await page.click("button:has-text('Verify and open ballot')");
   await page.waitForURL(new RegExp(`/e/${slug}/ballot`));
 }

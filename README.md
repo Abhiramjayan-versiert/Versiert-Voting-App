@@ -14,11 +14,11 @@ V.app is a full-stack Next.js + PostgreSQL application with three roles — **De
 |---|---|---|
 | **Super Admin** (platform owner, provisioned by CLI only, MFA mandatory) | Create/suspend colleges; invite, assign, suspend, revoke administrators; platform config (maintenance, retention, auth, rate limits, features); monitor health, jobs, imports, cleanup; review security events and the audit log; force early deletion | See how any individual voted |
 | **College admin** (invited, optional/required MFA) | Create elections; import voter lists; manage positions/candidates; set rules; activate, pause, resume, close; monitor turnout; review integrity; publish results; export reports | See other colleges; edit/delete accepted ballots; see secret-ballot choices |
-| **Student** (no account; email one-time code) | Verify email, vote once per eligible position, skip positions and return later, get a receipt code, view published results | Vote twice for a position; vote without inbox access; see results before publication |
+| **Student** (no account; college email + student ID) | Verify identity, vote once per eligible position, skip positions and return later, get a receipt code, view published results | Vote twice for a position; vote without matching email + student ID; see results before publication |
 
 ## 2. Technology stack
 
-Next.js 16 (App Router, Server Actions, Turbopack) · React 19 · TypeScript · Tailwind CSS 4 · PostgreSQL 14+ (tested on 16) via `postgres` · Zod · Argon2id (`@node-rs/argon2`) · RFC 6238 TOTP (built-in) · ExcelJS (exports) · SheetJS 0.20.3 via `@e965/xlsx` (imports) · Vitest · Playwright · Resend (email) · optional Cloudflare Turnstile · Vercel (hosting + Cron).
+Next.js 16 (App Router, Server Actions, Turbopack) · React 19 · TypeScript · Tailwind CSS 4 · PostgreSQL 14+ (tested on 16) via `postgres` · Zod · Argon2id (`@node-rs/argon2`) · RFC 6238 TOTP (built-in) · ExcelJS (exports) · SheetJS 0.20.3 via `@e965/xlsx` (imports) · Vitest · Playwright · Resend (optional email) · optional Cloudflare Turnstile · Vercel (hosting + Cron).
 
 Authentication is built in rather than Supabase Auth so it runs on any PostgreSQL (Supabase, Neon, RDS, self-hosted) and keeps privileged logic server-side.
 
@@ -26,7 +26,7 @@ Authentication is built in rather than Supabase Auth so it runs on any PostgreSQ
 
 - Node.js **20.9+** (developed on 22) and npm
 - PostgreSQL **14+** with a role that can `CREATE ROLE` once (Supabase/Neon `postgres` owner is fine)
-- For production: a Vercel account, a managed Postgres, a [Resend](https://resend.com) account with a verified sending domain
+- For production: a Vercel account and a managed Postgres. Email ([Resend](https://resend.com)) is optional.
 
 ## 4. Local installation
 
@@ -50,10 +50,10 @@ See [`.env.example`](.env.example). Summary:
 | `DATABASE_OWNER_URL` | **local/CI only** | Schema owner, used by migrations/seed/bootstrap. Never set in Vercel |
 | `APP_DB_PASSWORD` | local/CI | Password to assign to `vapp_app` |
 | `HMAC_SECRET`, `ENCRYPTION_KEY`, `CRON_SECRET` | Vercel + local | Keyed hashing, MFA-secret encryption (32-byte base64), cron auth |
-| `RESEND_API_KEY`, `EMAIL_FROM` | Vercel | Required in production |
+| `RESEND_API_KEY`, `EMAIL_FROM` | Vercel (optional) | Only for invitation/reset/reminder emails. Without them, links are shown on screen |
 | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | optional | Bot challenge on suspicious volume |
 
-The server refuses to start in production with an `http://` URL, development-looking secrets, or no email provider.
+The server refuses to start in production with an `http://` URL or development-looking secrets.
 
 ## 6. Database creation
 
@@ -76,7 +76,7 @@ Migrations are plain SQL in `db/migrations/`, applied in order and recorded in `
 
 ## 9. Email provider setup
 
-Create a Resend API key, verify your domain, set `RESEND_API_KEY` and `EMAIL_FROM`. One-time codes are sent immediately and never stored; other mail (invitations, reminders, notices) is queued and delivered by the cron job (or "Deliver emails" in the console). Free email tiers have daily caps — check your plan before emailing large voter lists.
+**Optional.** Voters verify with email + student ID, so V.app works with no email service. Without one: when you invite a college admin or issue a password reset, the single-use link is shown on screen in the developer console — send it yourself (WhatsApp, etc.); the "Email invitations/reminders" buttons tell admins to share the voting link themselves. To enable email later, create a Resend API key, verify your domain and set `RESEND_API_KEY` and `EMAIL_FROM`.
 
 ## 10. Development server
 
@@ -100,7 +100,7 @@ After `npm run db:seed` (refuses unless `APP_MODE=test`):
 | Super Admin | `dev@vapp.test` / `TestMode-Dev-2026!` · TOTP secret `VAPPDEMOSUPERADMINTESTMODE234567` (`npx tsx scripts/totp.ts <secret>` prints the current code, or add it to an authenticator app) |
 | Northfield admin | `admin@northfield.test` / `TestMode-Admin-2026!` |
 | Riverside admin | `admin@riverside.test` / `TestMode-Admin-2026!` |
-| Students | `student001@northfield.test` … `student060@northfield.test` — read codes at `/dev/inbox` |
+| Students | `student001@northfield.test` … `student060@northfield.test` with student IDs `T0001` … `T0060` |
 
 Seeded elections: an **open** union election (`/e/northfield-union-2026`), a **closed** sports election awaiting review (includes a deliberate tie), a **draft**, and a **scheduled** election at a second college.
 
@@ -114,7 +114,7 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). In short: import the repo, set env
 
 ## 15. Voter import
 
-Election → Voters → choose `.xlsx`/`.xls`/`.csv` → **Preview** → adjust column mapping → **Import**. Required: an email column. Optional: name, student ID, group (enables position-specific eligibility). Duplicates, invalid/missing emails and non-college domains are rejected with a downloadable report. Max 4 MB / 20,000 rows (configurable down). Files are parsed in memory and never stored.
+Election → Voters → choose `.xlsx`/`.xls`/`.csv` → **Preview** → adjust column mapping → **Import**. Required: email and student ID columns. Optional: name, group (enables position-specific eligibility). Duplicates, invalid/missing emails and non-college domains are rejected with a downloadable report. Max 4 MB / 20,000 rows (configurable down). Files are parsed in memory and never stored.
 
 ## 16. Election creation
 
@@ -139,7 +139,7 @@ Provided by your database host (Supabase daily backups/PITR, Neon history). Targ
 | `Invalid server environment: …` at startup | A required env var is missing/short; see §5 |
 | `Role vapp_app does not exist` during migrate | Run `npm run db:roles` first |
 | `permission denied for table …` | You're running migrations as `vapp_app`; use `DATABASE_OWNER_URL` |
-| Students don't receive codes | Check Resend domain verification and quota; codes are never stored, ask them to request a new one |
+| Student can't verify | Check their email and student ID in the voter list (Voters → search). After 5 wrong tries the email is locked for an hour |
 | "Too many sign-in attempts" | Per-network limit (campus NAT); raise it in Configuration |
 | Cron deployment fails on Hobby | Keep the daily `vercel.json`; don't use `vercel.pro.json` |
 | Import says "could not be read" | Re-save as `.xlsx` or UTF-8 `.csv`; password-protected files aren't supported |
@@ -147,7 +147,7 @@ Provided by your database host (Supabase daily backups/PITR, Neon history). Targ
 
 ## 21. Security limitations
 
-Privacy is enforced by schema design, grants and RLS — not a cryptographic voting protocol. Email verification proves inbox control, not identity. CSP allows inline scripts (Next.js hydration). Full list: [docs/SECURITY.md](docs/SECURITY.md).
+Privacy is enforced by schema design, grants and RLS — not a cryptographic voting protocol. Anyone who knows both a student's email and student ID can vote as them. CSP allows inline scripts (Next.js hydration). Full list: [docs/SECURITY.md](docs/SECURITY.md).
 
 ## 22. Cross-platform installation
 

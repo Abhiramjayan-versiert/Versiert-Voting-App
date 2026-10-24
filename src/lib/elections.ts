@@ -7,7 +7,8 @@ import { effectiveStatus, purgeAfter, validateSchedule, type Status } from "./li
 import { sha256 } from "./crypto";
 import { queueNotification } from "./mailer";
 import { getConfig } from "./config";
-import { env } from "./env";
+import { normalizeStudentId } from "./email-normalize";
+import { env, emailEnabled } from "./env";
 
 export class UserError extends Error {}
 
@@ -239,7 +240,7 @@ export async function commitImport(ctx: Ctx, actor: Actor, electionId: string, f
       const chunk = v.accepted.slice(i, i + 1000).map((a) => ({
         election_id: electionId, college_id: e.college_id, email: a.email, name: a.name, student_id: a.studentId, voter_group: a.group, import_id: imp.id,
       }));
-      const r = await tx`insert into voters ${tx(chunk)} on conflict (election_id, email) do nothing returning id`;
+      const r = await tx`insert into voters ${tx(chunk)} on conflict do nothing returning id`;
       inserted += r.length;
     }
     for (let i = 0; i < v.rejected.length; i += 1000) {
@@ -262,12 +263,14 @@ export async function recordFailedImport(ctx: Ctx, actor: Actor, electionId: str
 }
 
 export async function addVoter(ctx: Ctx, actor: Actor, electionId: string, email: string, name: string | null, studentId: string | null, group: string | null) {
+  studentId = normalizeStudentId(studentId ?? "") || null;
+  if (!studentId || studentId.length < 3) throw new UserError("Enter the student's ID (at least 3 characters). Students verify with their email and student ID.");
   await withCtx(ctx, async (tx) => {
     const e = await mustGet(ctx, tx, electionId, true);
     if (!(e.status === "draft" || e.status === "paused")) throw new UserError("Voters can be added while the election is a draft, or while paused for an amendment.");
     const r = await tx`insert into voters (election_id, college_id, email, name, student_id, voter_group)
                        values (${electionId}, ${e.college_id}, ${email}, ${name}, ${studentId}, ${group}) on conflict do nothing returning id`;
-    if (!r.length) throw new UserError("That email is already on the voter list.");
+    if (!r.length) throw new UserError("That email or student ID is already on the voter list.");
     await audit({ actorId: actor.id, actorLabel: actor.label, collegeId: e.college_id, electionId, action: "voters.add", details: { email_hash: sha256(email).slice(0, 16) }, ipHash: actor.ipHash }, tx);
   });
 }
@@ -304,6 +307,8 @@ export async function readiness(ctx: Ctx, electionId: string, tx?: Sql) {
       }
     }
     if (voters === 0) issues.push("Import at least one eligible voter.");
+    const [{ n: noId }] = await t`select count(*)::int as n from voters where election_id = ${electionId} and student_id is null`;
+    if (noId > 0) issues.push(`${noId} voter(s) have no student ID and could not verify. Remove them or re-add them with an ID.`);
     issues.push(...validateSchedule(new Date(e.starts_at), new Date(e.ends_at)));
     return { ok: issues.length === 0, issues, voters, positions };
   };
@@ -491,6 +496,7 @@ export async function flagIncident(ctx: Ctx, actor: Actor, electionId: string, d
 // Notifications to voters (queued; never contain choices)
 // ---------------------------------------------------------------------------
 export async function queueVoterEmails(ctx: Ctx, actor: Actor, electionId: string, kind: "invitation" | "closing_reminder") {
+  if (!emailEnabled()) throw new UserError("Email isn't set up on this platform. Share the voting link with students yourself (WhatsApp, college email, notice board).");
   if (!(await getConfig()).email_notifications_enabled) throw new UserError("Email notifications are turned off by the platform administrator.");
   return withCtx(ctx, async (tx) => {
     const e = await mustGet(ctx, tx, electionId);

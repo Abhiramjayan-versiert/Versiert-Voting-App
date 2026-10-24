@@ -36,7 +36,7 @@ export async function makeElection(o: {
   }
   const voters: string[] = [];
   for (let i = 0; i < (o.voters ?? 5); i++) {
-    const [v] = await db`insert into voters (election_id, college_id, email, voter_group) values (${e.id}, ${c.id}, ${`s${i}@t.test`}, ${o.groups?.[i % o.groups.length] ?? null}) returning id`;
+    const [v] = await db`insert into voters (election_id, college_id, email, student_id, voter_group) values (${e.id}, ${c.id}, ${`s${i}@t.test`}, ${`SID${i}`}, ${o.groups?.[i % o.groups.length] ?? null}) returning id`;
     voters.push(v.id);
   }
   return { collegeId: c.id as string, election: e, electionId: e.id as string, positions, voters };

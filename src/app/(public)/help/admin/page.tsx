@@ -14,7 +14,7 @@ export default function AdminGuide() {
           <p>Dashboard → <strong>New election</strong>. Enter the event name, title, voting window and timezone. Everything stays editable while the election is a draft.</p>
           <h2>2. Import eligible voters</h2>
           <ul>
-            <li>Upload <code>.xlsx</code>, <code>.xls</code> or <code>.csv</code> (first sheet, headers in row 1, max 4 MB). An email column is required; name, student ID and group are optional.</li>
+            <li>Upload <code>.xlsx</code>, <code>.xls</code> or <code>.csv</code> (first sheet, headers in row 1, max 4 MB). <strong>Email and student ID columns are required</strong> — students verify with both. Name and group are optional. Student IDs must be unique.</li>
             <li>Preview shows accepted, invalid and duplicate rows before anything is saved. Download the rejected rows, fix them, and upload again — existing addresses are skipped, never duplicated.</li>
             <li>The spreadsheet itself is never stored.</li>
           </ul>

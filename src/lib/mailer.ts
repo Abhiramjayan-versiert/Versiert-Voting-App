@@ -31,7 +31,8 @@ export async function queueNotification(n: {
   to: string; subject: string; text: string; kind: string; collegeId?: string | null; electionId?: string | null; dedupeKey?: string;
 }, tx?: Sql) {
   const { getConfig } = await import("./config");
-  if (!(await getConfig()).email_notifications_enabled) return;
+  const { emailEnabled } = await import("./env");
+  if (!emailEnabled() || !(await getConfig()).email_notifications_enabled) return;
   // Pass the caller's transaction when it holds locks on referenced rows (avoids cross-connection waits).
   const q = tx ?? sql();
   await q`insert into notifications (to_email, subject, body_text, kind, college_id, election_id, dedupe_key)

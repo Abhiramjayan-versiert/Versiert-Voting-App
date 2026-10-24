@@ -17,7 +17,7 @@ export default function Vote() {
           <Input id="q" name="q" required placeholder="https://…/e/your-election or E-…" className="h-13 text-base" />
           <SubmitButton variant="primary" size="lg" className="w-full">Continue</SubmitButton>
         </ActionForm>
-        <p className="mt-8 text-sm text-g500">No account needed. You'll verify your college email with a one-time code.</p>
+        <p className="mt-8 text-sm text-g500">No account needed. You'll verify with your college email and student ID.</p>
       </main>
       <SiteFooter />
     </>

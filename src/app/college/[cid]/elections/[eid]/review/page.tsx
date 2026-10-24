@@ -22,7 +22,7 @@ export default async function Review({ params }: { params: Promise<{ cid: string
           <dl className="mt-2 divide-y divide-g100">
             <Row k="Event" v={<>{e.event_name}<br /><span className="text-g500">{e.title}{e.academic_year ? ` · ${e.academic_year}` : ""}</span></>} />
             <Row k="Voting window" v={<>{fmtDate(e.starts_at, e.timezone, "full")}<br />→ {fmtDate(e.ends_at, e.timezone, "full")} <span className="text-g500">({e.timezone})</span></>} />
-            <Row k="Eligible voters" v={`${r.voters.toLocaleString("en-IN")} on the list · each verifies their email with a one-time code`} />
+            <Row k="Eligible voters" v={`${r.voters.toLocaleString("en-IN")} on the list · each verifies with college email + student ID`} />
             <Row k="Positions & candidates" v={<ul className="space-y-2">{r.positions.map((p) => (
               <li key={p.id}><span className="font-medium">{p.name}</span> <span className="text-g500">· {p.max_selections === 1 ? "1 choice" : `up to ${p.max_selections}`}{p.eligible_groups?.length ? ` · groups ${p.eligible_groups.join(", ")}` : ""}</span>
                 <span className="block text-g600">{cands.filter((c) => c.position_id === p.id).map((c) => c.full_name).join(", ") || "—"}</span></li>))}</ul>} />
