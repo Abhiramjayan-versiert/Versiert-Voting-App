@@ -3,7 +3,7 @@
 -- 1. Replace CHANGE_ME_APP_DB_PASSWORD below with a long random password.
 --    (Letters and numbers only — avoid quotes and @ : / ? # so it works in a URL.)
 -- 2. Paste this whole file into Supabase → SQL Editor → Run.
--- Safe to run once on an empty project. Includes migrations: 0001_core.sql, 0002_ballot_functions.sql, 0003_rls_and_grants.sql, 0004_mfa_replay.sql, 0005_grants_migrations.sql, 0006_student_id_verification.sql, 0007_supabase_hardening.sql
+-- Safe to run once on an empty project. Includes migrations: 0001_core.sql, 0002_ballot_functions.sql, 0003_rls_and_grants.sql, 0004_mfa_replay.sql, 0005_grants_migrations.sql, 0006_student_id_verification.sql, 0007_supabase_hardening.sql, 0008_fixed_search_paths.sql
 -- ============================================================================
 
 do $$ begin
@@ -933,5 +933,21 @@ begin
 end $$;
 
 insert into schema_migrations (name, checksum) values ('0007_supabase_hardening.sql', 'ee3eb3484c6796bd49fd0a0fc4aecf754b80bdb1288746703cac0e5ab84d6689') on conflict (name) do nothing;
+
+-- ─── 0008_fixed_search_paths.sql ───────────────────────────────────────────
+-- Pin search_path on every helper function (Supabase security advisor 0011).
+alter function app.ctx_role() set search_path = public, pg_temp;
+alter function app.ctx_user() set search_path = public, pg_temp;
+alter function app.ctx_colleges() set search_path = public, pg_temp;
+alter function app.can_access_college(uuid) set search_path = public, pg_temp;
+alter function app.touch_updated_at() set search_path = public, pg_temp;
+alter function app.guard_super_admin() set search_path = public, pg_temp;
+alter function app.append_only() set search_path = public, pg_temp;
+alter function app.voter_eligible_for_position(text, text[]) set search_path = public, pg_temp;
+alter function app.election_accepting(elections) set search_path = public, pg_temp;
+alter function app.snapshot_delete_guard() set search_path = public, pg_temp;
+alter function ballot.block_mutation() set search_path = public, pg_temp;
+
+insert into schema_migrations (name, checksum) values ('0008_fixed_search_paths.sql', '6f1cec6b1e03da75dab17183978ba39496bf7aa034400a8bc2dd7bef9e8d72c9') on conflict (name) do nothing;
 
 select 'V.app database ready — ' || count(*) || ' migrations recorded' as status from schema_migrations;
