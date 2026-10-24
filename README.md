@@ -114,7 +114,7 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). In short: import the repo, set env
 
 ## 15. Voter import
 
-Election → Voters → choose `.xlsx`/`.xls`/`.csv` → **Preview** → adjust column mapping → **Import**. Required: email and student ID columns. Optional: name, group (enables position-specific eligibility). Duplicates, invalid/missing emails and non-college domains are rejected with a downloadable report. Max 4 MB / 20,000 rows (configurable down). Files are parsed in memory and never stored.
+Election → Voters → choose `.xlsx`/`.xls`/`.csv` → **Preview** → adjust column mapping → **Import**. Required: email and student ID columns. Optional: name, group (enables position-specific eligibility). Duplicates, invalid/missing emails and missing/duplicate student IDs are rejected with a downloadable report. Max 4 MB / 20,000 rows (configurable down). Files are parsed in memory and never stored.
 
 ## 16. Election creation
 
