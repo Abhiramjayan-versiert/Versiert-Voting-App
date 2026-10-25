@@ -1,11 +1,13 @@
 import { loadElection } from "@/lib/election-page";
 import { withCtx } from "@/lib/db";
 import { Table, fmtDate, Empty } from "@/components/ui";
+import { Restricted } from "@/components/restricted";
 
 export const metadata = { title: "Election activity" };
 export default async function ElectionAudit({ params }: { params: Promise<{ cid: string; eid: string }> }) {
   const { cid, eid } = await params;
   const { ctx, e } = await loadElection(cid, eid);
+  if (ctx.role !== "super_admin") return <Restricted what="This election's activity log" />;
   const rows = await withCtx(ctx, (tx) => tx`select id, at, actor_label, action, target, details from audit_events where election_id = ${eid} order by id desc limit 300`);
   if (!rows.length) return <Empty title="No activity yet" />;
   return (

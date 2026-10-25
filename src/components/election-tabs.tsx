@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cx } from "./ui";
 
-export function ElectionTabs({ base, status }: { base: string; status: string }) {
+export function ElectionTabs({ base, status, showActivity }: { base: string; status: string; showActivity?: boolean }) {
   const path = usePathname();
   const setup = ["details", "voters", "positions", "rules", "review"];
   const tabs = [
@@ -13,7 +13,7 @@ export function ElectionTabs({ base, status }: { base: string; status: string })
     { href: `${base}/monitor`, label: "Live monitor" },
     { href: `${base}/results`, label: "Results" },
     { href: `${base}/exports`, label: "Exports" },
-    { href: `${base}/audit`, label: "Activity" },
+    ...(showActivity ? [{ href: `${base}/audit`, label: "Activity" }] : []),
   ];
   return (
     <nav aria-label="Election sections" className="-mx-4 mb-7 overflow-x-auto border-b border-g200 px-4 sm:mx-0 sm:px-0">

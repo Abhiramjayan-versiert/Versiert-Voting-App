@@ -98,7 +98,7 @@ export default async function Results({ params }: { params: Promise<{ cid: strin
 
       {d.history.length > 0 && (
         <Card><h2 className="mb-3 font-semibold">Publication history</h2>
-          <ul className="space-y-2 text-sm">{d.history.map((h, i) => <li key={i}><Badge tone={h.action === "publish" ? "published" : "warning"}>{h.action}</Badge> <span className="text-g600">{fmtDate(h.created_at, e.timezone)} · {h.email ?? "automatic"}{h.note ? ` · ${h.note}` : ""}</span></li>)}</ul>
+          <ul className="space-y-2 text-sm">{d.history.map((h, i) => <li key={i}><Badge tone={h.action === "publish" ? "published" : "warning"}>{h.action}</Badge> <span className="text-g600">{fmtDate(h.created_at, e.timezone)} · {isSuper ? (h.email ?? "automatic") : (h.email ? "Administrator" : "automatic")}{h.note ? ` · ${h.note}` : ""}</span></li>)}</ul>
         </Card>
       )}
     </div>

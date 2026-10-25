@@ -50,6 +50,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ eid: str
   }
 
   if (kind === "audit.csv") {
+    if (auth.ctx.role !== "super_admin") return NextResponse.json({ error: "Restricted to the platform administrator." }, { status: 403 });
     const rows = await withCtx(auth.ctx, (tx) => tx`select id, at, actor_label, action, target, details, hash from audit_events where election_id = ${eid} order by id`);
     await log(kind);
     return send(toCsv(["Entry", "Time (UTC)", "Actor", "Action", "Target", "Details", "Chain hash"], rows.map((r) => [r.id, new Date(r.at).toISOString(), r.actor_label, r.action, r.target, JSON.stringify(r.details), r.hash])), `${base}-audit.csv`, "text/csv; charset=utf-8");

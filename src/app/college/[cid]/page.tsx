@@ -19,7 +19,7 @@ export default async function Dashboard({ params }: { params: Promise<{ cid: str
         (select count(*)::int from voters v where v.election_id = e.id and app.voter_eligible_for_position(v.voter_group, p.eligible_groups)) as eligible,
         (select count(*)::int from participations pa where pa.position_id = p.id) as voted
       from positions p join elections e on e.id = p.election_id where e.id = any(${active.map((a) => a.id)}::uuid[]) order by p.sort_order` : [];
-    const activity = await tx`select at, actor_label, action, target from audit_events where college_id = ${cid} order by id desc limit 8`;
+    const activity = s.user.role === "super_admin" ? await tx`select at, actor_label, action, target from audit_events where college_id = ${cid} order by id desc limit 8` : [];
     return { els, posTurnout, activity };
   });
   const by = (st: string[]) => d.els.filter((e) => st.includes(e.effective));
@@ -82,12 +82,12 @@ export default async function Dashboard({ params }: { params: Promise<{ cid: str
                 <li key={i}><Link href={t.href} className="flex gap-3 rounded-xl border border-g200 p-3 text-sm hover:border-ink"><span className="mt-1.5 size-2 shrink-0 rounded-full bg-lime ring-2 ring-ink" aria-hidden />{t.t}</Link></li>))}</ul>
             )}
           </Card>
-          <Card>
+          {s.user.role !== "super_admin" ? <Card><h2 className="font-semibold">Recent activity</h2><p className="mt-1 text-sm text-g600">The activity log is available to the platform administrator only. Contact the admin if you need it.</p></Card> : <Card>
             <div className="mb-3 flex items-center justify-between"><h2 className="font-semibold">Recent activity</h2><Link href={`/college/${cid}/audit`} className="text-sm text-g500 hover:text-ink">Activity log</Link></div>
             <ul className="space-y-3 text-sm">{d.activity.map((r, i) => (
               <li key={i}><span className="font-mono text-[0.78rem]">{r.action}</span> <span className="text-g600">{r.target}</span><span className="block text-xs text-g500">{r.actor_label} · {relTime(r.at)}</span></li>))}
             </ul>
-          </Card>
+          </Card>}
         </div>
       </div>
     </>

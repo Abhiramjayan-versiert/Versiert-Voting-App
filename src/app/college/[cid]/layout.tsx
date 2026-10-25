@@ -34,7 +34,7 @@ export default async function CollegeLayout({ children, params }: { children: Re
       { href: base, label: "Dashboard", exact: true },
       { href: `${base}/elections`, label: "Elections" },
       { href: `${base}/elections/new`, label: "New election", exact: true },
-      { href: `${base}/audit`, label: "Activity log" },
+      ...(s.user.role === "super_admin" ? [{ href: `${base}/audit`, label: "Activity log" }] : []),
       { href: `${base}/profile`, label: "College profile" },
       { href: "/help/admin", label: "Administrator guide" },
     ]} user={s.user} roleLabel={s.user.role === "super_admin" ? "Super Admin · full access" : "College election admin"} top={top}>

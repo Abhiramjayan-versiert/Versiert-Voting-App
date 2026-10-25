@@ -6,6 +6,7 @@ export const metadata = { title: "College profile" };
 export default async function Profile({ params }: { params: Promise<{ cid: string }> }) {
   const { cid } = await params;
   const { ctx } = await requireCollegeAdmin(cid);
+  const isSuper = ctx.role === "super_admin";
   const [c] = await withCtx(ctx, (tx) => tx`select code, name, short_name, city, default_retention_days, status, (logo is not null) as has_logo from colleges where id = ${cid}`);
   const admins = await withCtx(ctx, (tx) => tx`select u.name, u.email, u.status from college_admins ca join users u on u.id = ca.user_id where ca.college_id = ${cid} order by u.name`);
   return (
@@ -21,7 +22,7 @@ export default async function Profile({ params }: { params: Promise<{ cid: strin
             <dt className="text-g500">Default retention</dt><dd>{c.default_retention_days} days after publication</dd>
           </dl>
         </Card>
-        <Card><h2 className="mb-3 font-semibold">Election administrators</h2><ul className="space-y-2 text-sm">{admins.map((a) => <li key={a.email}>{a.name} <span className="text-g500">· {a.email} · {a.status}</span></li>)}</ul></Card>
+        <Card><h2 className="mb-3 font-semibold">Election administrators</h2><ul className="space-y-2 text-sm">{admins.map((a) => <li key={a.email}>{a.name} <span className="text-g500">{isSuper ? `· ${a.email} ` : ""}· {a.status}</span></li>)}</ul></Card>
       </div>
     </>
   );

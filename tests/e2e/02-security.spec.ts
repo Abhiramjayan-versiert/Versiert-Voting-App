@@ -179,6 +179,26 @@ test("security headers are present", async ({ request }) => {
   expect(h["x-powered-by"]).toBeUndefined();
 });
 
+test("activity logs and other administrators' emails are visible to the Super Admin only", async ({ page }) => {
+  await loginAdmin(page, RV, PW); // Riverside admin: keeps the Northfield account under its sign-in limit
+  const cbase = new URL(page.url()).pathname.match(/^\/college\/[0-9a-f-]{36}/)![0];
+  await expect(page.getByRole("link", { name: "Activity log" })).toHaveCount(0);
+  await page.goto(`${cbase}/audit`);
+  await expect(page.getByText(/available to the platform administrator only/)).toBeVisible();
+  expect(await page.content()).not.toMatch(/super:|dev@vapp\.test/);
+  await page.goto(`${cbase}/profile`);
+  expect(await page.content()).not.toMatch(/dev@vapp\.test/);
+  await page.goto(`${cbase}/elections`);
+  await page.getByRole("link", { name: "Students' Council 2026" }).first().click();
+  await page.waitForURL(/\/elections\/[0-9a-f-]{36}/);
+  await expect(page.getByRole("link", { name: "Activity", exact: true })).toHaveCount(0);
+  const eid = new URL(page.url()).pathname.split("/elections/")[1].split("/")[0];
+  expect((await page.request.get(`/api/exports/${eid}/audit.csv`)).status()).toBe(403);
+  await page.goto(`${cbase}/elections/${eid}/audit`);
+  await expect(page.getByText(/available to the platform administrator only/)).toBeVisible();
+});
+
+
 test("repeated wrong passwords lock the account", async ({ page }) => {
   for (let i = 0; i < 5; i++) {
     await page.goto("/admin/login");

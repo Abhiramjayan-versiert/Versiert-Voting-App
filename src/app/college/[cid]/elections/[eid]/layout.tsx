@@ -6,7 +6,7 @@ import { ElectionTabs } from "@/components/election-tabs";
 
 export default async function ElectionLayout({ children, params }: { children: React.ReactNode; params: Promise<{ cid: string; eid: string }> }) {
   const { cid, eid } = await params;
-  const { e, base } = await loadElection(cid, eid);
+  const { e, base, ctx } = await loadElection(cid, eid);
   const st = e.effective as keyof typeof STATUS_LABEL;
   return (
     <>
@@ -19,7 +19,7 @@ export default async function ElectionLayout({ children, params }: { children: R
         </div>
         <p className="mt-1 text-sm text-g500">{e.event_name} · {fmtDate(e.starts_at, e.timezone)} → {fmtDate(e.ends_at, e.timezone)} ({e.timezone}) · Ref <span className="font-mono">{e.public_ref}</span></p>
       </div>
-      <ElectionTabs base={base} status={st} />
+      <ElectionTabs base={base} status={st} showActivity={ctx.role === "super_admin"} />
       {children}
     </>
   );
