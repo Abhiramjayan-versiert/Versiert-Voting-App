@@ -24,7 +24,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ eid: str
   const published = st === "published" || st === "retention";
   // Candidate results: Super Admin any time after voting starts; college admins only after publication.
   const resultsAllowed = auth.ctx.role === "super_admin"
-    ? ["open", "paused", "results_pending", "published", "retention", "deleted"].includes(st)
+    ? ["open", "paused", "closed", "results_pending", "published", "retention", "deleted"].includes(st)
     : ["published", "retention", "deleted"].includes(st);
   const pubStatus = published ? `Published ${fmt(e.published_at, e.timezone)}` : st === "deleted" ? "Published (data since deleted)" : "PROVISIONAL — not published";
   const base = `${e.public_ref}-${e.slug.replace(/-[0-9a-f]{6}$/, "")}`.slice(0, 60);

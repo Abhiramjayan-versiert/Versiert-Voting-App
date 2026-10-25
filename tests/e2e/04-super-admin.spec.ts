@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { loginSuper, loginAdmin } from "./helpers";
+import { loginSuper, loginAdmin, e2eSql } from "./helpers";
 
 /** Super Admin has full election access across all colleges. Runs last: it deletes a seeded election. */
 test.describe.configure({ mode: "serial" });
@@ -73,6 +73,26 @@ test("college admins cannot use Super Admin deletion", async ({ page }) => {
 
 test("Super Admin can permanently delete a running election", async ({ page, request }) => {
   await loginSuper(page);
+  // The voting window has just ended but the daily job hasn't recorded the close: the Super Admin can still publish.
+  const db = await e2eSql();
+  await db`update elections set ends_at = now() - interval '1 minute', results_require_approval = true where slug = 'northfield-union-2026'`;
+  await page.goto("/platform/elections");
+  await page.locator("tr", { hasText: "College Union Election 2026" }).first().getByRole("link", { name: "Results" }).click();
+  await expect(page.getByRole("heading", { name: "Publish results" })).toBeVisible();
+  await page.getByLabel(/Voting has closed, I have reviewed/).check();
+  await page.getByRole("button", { name: "Publish results" }).click();
+  await expect(page.getByText(/^Published /)).toBeVisible();
+  const [{ public_ref }] = await db`select public_ref from elections where slug = 'northfield-union-2026'`;
+  // Anyone can open the results link without signing in: counts and graphs.
+  const anon = await page.context().browser()!.newContext();
+  const ap = await anon.newPage();
+  await ap.goto(`/r/${public_ref}`);
+  await expect(ap.getByText("Votes cast")).toBeVisible();
+  await expect(ap.getByText("Polling rate")).toBeVisible();
+  await ap.goto("/e/northfield-union-2026");
+  await expect(ap.getByRole("link", { name: "View published results" })).toBeVisible();
+  await anon.close();
+
   await page.goto("/platform/elections");
   const row = page.locator("tr", { hasText: "College Union Election 2026" });
   const ref = (await row.locator(".font-mono").first().textContent())!.trim();

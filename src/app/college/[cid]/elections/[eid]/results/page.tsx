@@ -15,7 +15,8 @@ export const metadata = { title: "Results" };
 export default async function Results({ params }: { params: Promise<{ cid: string; eid: string }> }) {
   const { cid, eid } = await params;
   const { ctx, e } = await loadElection(cid, eid);
-  const st = e.effective as string;
+  // "closed" = the voting window ended but the daily job hasn't recorded it yet; treat it as pending review.
+  const st = (e.effective === "closed" ? "results_pending" : e.effective) as string;
   if (["draft", "scheduled"].includes(st)) return <Notice tone="info">Results will appear here once voting has started.</Notice>;
   if (st === "deleted") {
     const [snap] = await withCtx(ctx, (tx) => tx`select data, created_at from result_snapshots where election_id = ${eid} order by created_at desc limit 1`);

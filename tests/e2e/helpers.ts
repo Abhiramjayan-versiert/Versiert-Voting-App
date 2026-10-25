@@ -4,6 +4,9 @@ import postgres from "postgres";
 
 const E2E_DB = `postgres://${process.env.E2E_DB_OWNER ?? "postgres:postgres"}@${process.env.E2E_DB_HOST ?? "localhost:5432"}/${process.env.E2E_DB_NAME ?? "vapp_e2e"}`;
 let db: ReturnType<typeof postgres> | null = null;
+/** Direct owner access to the E2E database, for arranging time-based states (e.g. a voting window that has just ended). */
+export async function e2eSql() { db ??= postgres(E2E_DB, { max: 1, onnotice: () => {} }); return db; }
+
 /** Reads the latest voting code sent to an address from the test-mode mailbox (no real email is sent in test mode). */
 export async function latestCode(email: string, after: Date) {
   db ??= postgres(E2E_DB, { max: 1, onnotice: () => {} });
