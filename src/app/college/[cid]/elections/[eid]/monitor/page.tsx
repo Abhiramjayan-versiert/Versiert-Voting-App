@@ -5,6 +5,7 @@ import { Card, Stat, Progress, Notice, fmtDate, relTime } from "@/components/ui"
 import { AutoRefresh } from "@/components/auto-refresh";
 import { ResultsView } from "@/components/results-view";
 import { pct } from "@/lib/results";
+import { talliesVisible } from "@/lib/lifecycle";
 
 export const metadata = { title: "Live monitor" };
 export default async function Monitor({ params }: { params: Promise<{ cid: string; eid: string }> }) {
@@ -19,7 +20,7 @@ export default async function Monitor({ params }: { params: Promise<{ cid: strin
     dup: await tx`select count(*)::int as n from security_events where election_id = ${eid} and kind = 'duplicate_vote_attempt'`,
     sessions: await tx`select count(*)::int as n from voter_sessions where election_id = ${eid} and revoked_at is null and expires_at > now()`,
   }));
-  const showTallies = e.admin_live_results || !["open", "paused", "scheduled"].includes(st);
+  const showTallies = talliesVisible(ctx.role, st);
   const max = Math.max(1, ...d.hourly.map((h) => h.n));
   return (
     <div className="space-y-6">
@@ -55,9 +56,9 @@ export default async function Monitor({ params }: { params: Promise<{ cid: strin
       <div>
         <h2 className="mb-3 text-lg font-semibold">{st === "open" || st === "paused" ? "Live tallies (provisional)" : "Tallies"}</h2>
         {showTallies ? <>
-          {(st === "open" || st === "paused") && <Notice tone="info" className="mb-4">Visible to administrators only. Students and the public see nothing until you publish.</Notice>}
+          {(st === "open" || st === "paused") && <Notice tone="info" className="mb-4">Visible to the Super Admin only. College administrators, students and the public see candidate results only after publication.</Notice>}
           <ResultsView r={d.r} provisional />
-        </> : <Notice tone="info">Live tallies are turned off for this election. Results appear here after voting closes.</Notice>}
+        </> : <Notice tone="info">Candidate results are confidential until the Super Admin publishes them. Turnout and voting activity above are live.</Notice>}
       </div>
     </div>
   );

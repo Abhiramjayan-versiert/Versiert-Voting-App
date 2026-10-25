@@ -196,7 +196,8 @@ test("8–13. Students verify, vote once per position, duplicates rejected", asy
   await ctx3.close();
 });
 
-test("14–17. Close, review, publish, export — results match accepted ballots", async ({ page }) => {
+test("14–17. Close, review, publish, export — results match accepted ballots", async ({ page: firstPage }) => {
+  let page = firstPage;
   await loginAdmin(page, ADMIN.email, ADMIN.password);
   await page.goto(electionPath + "/monitor");
   await expect(page.getByText("Duplicate attempts blocked").locator("..")).toContainText("1");
@@ -206,7 +207,19 @@ test("14–17. Close, review, publish, export — results match accepted ballots
   await page.locator("dialog[open]").getByRole("button", { name: "Close voting" }).click();
   await expect(page.getByText(/Results pending review/).first()).toBeVisible();
 
-  // 15. Review results.
+  // College admins see turnout but not who is leading/winning before publication, and cannot publish.
+  await page.goto(electionPath + "/results");
+  await expect(page.getByText("All passed")).toBeVisible();
+  await expect(page.getByText("Turnout by position")).toBeVisible();
+  expect(await page.content()).not.toContain("Asha Kumar");
+  await expect(page.getByRole("button", { name: "Publish results" })).toHaveCount(0);
+  await expect(page.getByText(/Super Admin reviews and publishes/)).toBeVisible();
+  expect((await page.request.get(`/api/exports/${electionPath.split("/elections/")[1]}/candidates.csv`)).status()).toBe(409);
+  const adminPage = page;
+
+  // 15. The Super Admin reviews the results.
+  page = await page.context().browser()!.newPage();
+  await loginSuper(page);
   await page.goto(electionPath + "/results");
   await expect(page.getByText("All passed")).toBeVisible();
   const chair = page.locator("section").filter({ has: page.getByRole("heading", { name: "Chairman", exact: true }) });
@@ -217,22 +230,22 @@ test("14–17. Close, review, publish, export — results match accepted ballots
   const vice = page.locator("section").filter({ has: page.getByRole("heading", { name: "Vice Chairman", exact: true }) });
   await expect(vice).toContainText("Tie");
 
-  // 16. Publish.
+  // 16. The Super Admin publishes.
   await page.getByLabel(/Voting has closed, I have reviewed/).check();
   await page.getByRole("button", { name: "Publish results" }).click();
   await expect(page.getByText(/^Published /)).toBeVisible();
+  await page.close();
+  page = adminPage;
   const pub = await page.context().browser()!.newPage();
   await pub.goto(`/r/${publicRef}`);
   await expect(pub.getByRole("heading", { name: `College Union Election ${run}` })).toBeVisible();
   await expect(pub.getByText("Winner: Asha Kumar")).toBeVisible();
   await expect(pub.getByText(/Tie — needs resolution/)).toBeVisible();
   expect(await pub.content()).not.toContain("voter1@e2e-college.test");
-  // The public page shows percentages, outcomes and the polling rate — never absolute vote counts.
-  await expect(pub.getByText("Overall polling rate")).toBeVisible();
-  await expect(pub.getByText("Turnout 33.3%").first()).toBeVisible();
-  const html = await pub.content();
-  expect(html).not.toMatch(/of 6 eligible|Eligible voters|>Voted<|2 · 100|Show as table/);
-  expect(html).not.toMatch(/"votes":[1-9]|"eligibleVoters":[1-9]|"participants":[1-9]/); // nothing leaks into page data
+  // The public page shows the full published results: polling rate, votes cast, winners and candidate totals.
+  await expect(pub.getByText("Polling rate")).toBeVisible();
+  await expect(pub.getByText("Votes cast")).toBeVisible();
+  await expect(pub.getByText("2 · 100.0%").first()).toBeVisible();
   expect((await pub.request.get(`/r/${publicRef}/ballots`)).status()).toBe(404);
   // Administrators can still download the anonymous ballot list for a recount.
   const bl = await page.request.get(`/api/exports/${electionPath.split("/elections/")[1]}/ballots.csv`);

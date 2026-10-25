@@ -50,3 +50,8 @@ export function validateSchedule(startsAt: Date, endsAt: Date, now = new Date())
   }
   return errors;
 }
+
+/** Candidate tallies (who is leading/winning) are visible to the Super Admin at any time, to college admins only once published. */
+export function talliesVisible(role: string, effective: string) {
+  return role === "super_admin" || ["published", "retention", "deleted"].includes(effective);
+}

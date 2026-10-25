@@ -177,3 +177,42 @@ export async function ballotFor(electionId: string, voterId: string, voterGroup:
     return { positions, candidates };
   });
 }
+
+// ---------------------------------------------------------------------------
+// Super Admin voting pass: a single-use link for a voter on the list who cannot verify
+// (e.g. a typo in the uploaded email/ID). Identity is checked by the Super Admin offline.
+// Stored hashed in otp_challenges under a separate key namespace so it never mixes with email codes.
+// ---------------------------------------------------------------------------
+const PASS_MINUTES = 30;
+const passKey = (electionId: string, email: string) => "pass:" + emailKey(electionId, email);
+const passHash = (token: string) => hmac(env().HMAC_SECRET, "voting-pass:" + token);
+
+export async function issueVotingPass(electionId: string, voterId: string, email: string) {
+  const token = randomToken();
+  await withCtx(systemCtx, async (tx) => {
+    await tx`update otp_challenges set consumed_at = now() where election_id = ${electionId} and email_hmac = ${passKey(electionId, email)} and consumed_at is null`;
+    await tx`insert into otp_challenges (election_id, email_hmac, voter_id, code_hash, expires_at)
+             values (${electionId}, ${passKey(electionId, email)}, ${voterId}, ${passHash(token)}, now() + make_interval(mins => ${PASS_MINUTES}))`;
+  });
+  // A pass also clears any lockout from earlier wrong attempts.
+  const k = emailKey(electionId, email);
+  await sql()`delete from rate_limits where key in (${"verify-email:" + k}, ${"otp-send:" + k})`;
+  return { token, minutes: PASS_MINUTES };
+}
+
+export async function redeemVotingPass(slug: string, token: string) {
+  const cfg = await getConfig();
+  const e = await electionBySlug(slug);
+  if (!e || e.effective !== "open") return { ok: false, message: "Voting is not open for this election right now." };
+  if (!/^[A-Za-z0-9_-]{20,100}$/.test(token)) return { ok: false, message: "This voting link is not valid." };
+  const voterId = await withCtx(systemCtx, async (tx) => {
+    const [c] = await tx`update otp_challenges set consumed_at = now()
+                          where election_id = ${e.id} and code_hash = ${passHash(token)} and email_hmac like 'pass:%'
+                            and consumed_at is null and expires_at > now()
+                          returning voter_id`;
+    return (c?.voter_id as string | undefined) ?? null;
+  });
+  if (!voterId) return { ok: false, message: "This voting link has expired or was already used. Ask the election administrator for a new one." };
+  await startSession(slug, e.id, voterId, cfg.voter_session_minutes);
+  return { ok: true, message: "Verified" };
+}

@@ -26,6 +26,29 @@ test("Super Admin can open, run, view results of, export and create elections in
   await expect(page.getByText(/^Live · refreshed/)).toBeVisible();
   expect(await page.content()).not.toMatch(/student\d{3}@northfield\.test/);
 
+  // Direct voting access for a listed student who can't verify (e.g. a typo in the uploaded details).
+  await page.goto(new URL(page.url()).pathname.replace(/\/results$/, "/voters") + "?q=student010");
+  const vrow = page.locator("tr", { hasText: "student010@northfield.test" });
+  await vrow.getByRole("button", { name: "Give voting access" }).click();
+  const pdlg = page.locator("dialog[open]");
+  await pdlg.locator("textarea[name=reason]").fill("Checked college ID card in person at the help desk");
+  await pdlg.getByRole("button", { name: "Create voting link" }).click();
+  const passLink = (await pdlg.locator("p.font-mono").textContent())!.trim();
+  expect(passLink).toMatch(/\/e\/northfield-union-2026\/pass\//);
+  const sctx = await page.context().browser()!.newContext();
+  const sp = await sctx.newPage();
+  await sp.goto(new URL(passLink).pathname);
+  await sp.getByRole("button", { name: "Open my ballot" }).click();
+  await sp.waitForURL(/\/e\/northfield-union-2026\/ballot/);
+  await sctx.close();
+  // The link works once only.
+  const sctx2 = await page.context().browser()!.newContext();
+  const sp2 = await sctx2.newPage();
+  await sp2.goto(new URL(passLink).pathname);
+  await sp2.getByRole("button", { name: "Open my ballot" }).click();
+  await expect(sp2.getByText(/expired or was already used/)).toBeVisible();
+  await sctx2.close();
+
   // Manage an election at the OTHER college (Riverside) — full dashboard, not forbidden
   await page.goto("/platform/elections");
   await page.locator("tr", { hasText: "Students' Council 2026" }).getByRole("link", { name: "Manage" }).click();

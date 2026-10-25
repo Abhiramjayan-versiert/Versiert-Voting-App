@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireCollegeAdmin } from "@/lib/auth";
 import { withCtx } from "@/lib/db";
+import { audit } from "@/lib/audit";
 import { ipHash } from "@/lib/request";
 import { run, str, optStr, bool, isUuid, zonedToUtc, readImage } from "@/lib/action-utils";
 import * as E from "@/lib/elections";
@@ -149,6 +150,26 @@ export async function removeVotersAction(_: ActionState, fd: FormData): Promise<
   });
 }
 
+/** Super Admin only: single-use voting link for a listed voter who can't verify (typo in the uploaded details). */
+export async function issueVotingPassAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  return run(async () => {
+    const { s, ctx, e, a } = await scope(str(fd, "election_id"));
+    if (s.user.role !== "super_admin") throw new UserError("Only the Super Admin can give direct voting access.");
+    if (e.effective !== "open") throw new UserError("Voting is not open right now.");
+    const reason = str(fd, "reason");
+    if (reason.length < 10) throw new UserError("Give a reason of at least 10 characters (e.g. how you confirmed it's the student).");
+    const id = str(fd, "voter_id"); if (!isUuid(id)) throw new UserError("Voter not found.");
+    const [v] = await withCtx(ctx, (tx) => tx`select email from voters where id = ${id} and election_id = ${e.id}`);
+    if (!v) throw new UserError("Voter not found.");
+    const { issueVotingPass } = await import("@/lib/voter");
+    const { env } = await import("@/lib/env");
+    const pass = await issueVotingPass(e.id, id, v.email);
+    await withCtx(ctx, (tx) => audit({ actorId: a.id, actorLabel: a.label, collegeId: e.college_id, electionId: e.id, action: "voter.voting_pass_issued", target: v.email, details: { reason }, ipHash: a.ipHash }, tx));
+    return { ok: true, message: `Single-use voting link for ${v.email} — valid ${pass.minutes} minutes. Send it only to this student.`,
+      data: { link: `${env().APP_URL}/e/${e.slug}/pass/${pass.token}` } };
+  });
+}
+
 // ---- Positions & candidates ------------------------------------------------
 export async function upsertPositionAction(_: ActionState, fd: FormData): Promise<ActionState> {
   return run(async () => {
@@ -218,7 +239,7 @@ export async function updateRulesAction(_: ActionState, fd: FormData): Promise<A
 // ---- Lifecycle ---------------------------------------------------------------
 export async function lifecycleAction(_: ActionState, fd: FormData): Promise<ActionState> {
   return run(async () => {
-    const { ctx, e, a } = await scope(str(fd, "election_id"));
+    const { s, ctx, e, a } = await scope(str(fd, "election_id"));
     const op = str(fd, "op"), reason = str(fd, "reason");
     let message = "Done.";
     switch (op) {
@@ -231,12 +252,14 @@ export async function lifecycleAction(_: ActionState, fd: FormData): Promise<Act
         const v = str(fd, "ends_at");
         await E.resume(ctx, a, e.id, v ? zonedToUtc(v, e.timezone) : undefined); message = "Voting resumed."; break;
       }
-      case "close": await E.closeNow(ctx, a, e.id, reason); message = "Voting closed. Results are pending your review."; break;
+      case "close": await E.closeNow(ctx, a, e.id, reason); message = "Voting closed. The Super Admin reviews and publishes the results."; break;
       case "publish": {
+        if (s.user.role !== "super_admin") throw new UserError("Only the Super Admin can publish results.");
         if (!bool(fd, "ack")) throw new UserError("Confirm that the election has closed and the integrity checks passed.");
         await E.publish(ctx, a, e.id); message = "Results published."; break;
       }
-      case "unpublish": await E.unpublish(ctx, a, e.id, reason); message = "Results unpublished and back under review."; break;
+      case "unpublish": if (s.user.role !== "super_admin") throw new UserError("Only the Super Admin can unpublish results.");
+        await E.unpublish(ctx, a, e.id, reason); message = "Results unpublished and back under review."; break;
       case "flag": await E.flagIncident(ctx, a, e.id, reason); message = "Incident recorded. Publication is blocked until it is resolved."; break;
       case "resolve": await E.resolveIncident(ctx, a, str(fd, "incident_id"), reason); message = "Incident resolved."; break;
       case "invite": { const n = await E.queueVoterEmails(ctx, a, e.id, "invitation"); message = `${n} invitation email(s) queued.`; break; }

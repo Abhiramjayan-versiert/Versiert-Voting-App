@@ -22,7 +22,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ eid: str
   if (!e) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const st = e.effective as string;
   const published = st === "published" || st === "retention";
-  const resultsAllowed = ["results_pending", "published", "retention", "deleted"].includes(st) || ((st === "open" || st === "paused") && e.admin_live_results);
+  // Candidate results: Super Admin any time after voting starts; college admins only after publication.
+  const resultsAllowed = auth.ctx.role === "super_admin"
+    ? ["open", "paused", "results_pending", "published", "retention", "deleted"].includes(st)
+    : ["published", "retention", "deleted"].includes(st);
   const pubStatus = published ? `Published ${fmt(e.published_at, e.timezone)}` : st === "deleted" ? "Published (data since deleted)" : "PROVISIONAL — not published";
   const base = `${e.public_ref}-${e.slug.replace(/-[0-9a-f]{6}$/, "")}`.slice(0, 60);
   const send = (body: Buffer | string, name: string, type: string) => new NextResponse(body as BodyInit, {

@@ -8,19 +8,21 @@ import { ResultsView } from "@/components/results-view";
 import { lifecycleAction } from "@/app/college/actions";
 import { env } from "@/lib/env";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { talliesVisible } from "@/lib/lifecycle";
+import { pct } from "@/lib/results";
 
 export const metadata = { title: "Results" };
 export default async function Results({ params }: { params: Promise<{ cid: string; eid: string }> }) {
   const { cid, eid } = await params;
   const { ctx, e } = await loadElection(cid, eid);
   const st = e.effective as string;
-  if (["draft", "scheduled"].includes(st)) return <Notice tone="info">Results will appear here once voting has started{e.admin_live_results || ctx.role === "super_admin" ? "" : " and closed"}.</Notice>;
+  if (["draft", "scheduled"].includes(st)) return <Notice tone="info">Results will appear here once voting has started.</Notice>;
   if (st === "deleted") {
     const [snap] = await withCtx(ctx, (tx) => tx`select data, created_at from result_snapshots where election_id = ${eid} order by created_at desc limit 1`);
     return snap ? <><Notice tone="info" className="mb-5">Election data has been deleted. This is the retained published snapshot.</Notice><ResultsView r={snap.data.results} /></> : <Notice tone="info">This election's data and results were deleted under its retention policy.</Notice>;
   }
-  // Super Admin can always watch the live aggregate tally (totals only — individual ballots stay secret).
-  if ((st === "open" || st === "paused") && !e.admin_live_results && ctx.role !== "super_admin") return <Notice tone="info">Live tallies are off for this election. Results appear after voting closes.</Notice>;
+  const isSuper = ctx.role === "super_admin";
+  const canSeeTallies = talliesVisible(ctx.role, st);
   const d = await withCtx(ctx, async (tx) => ({
     r: await computeElection(eid, tx),
     integrity: ["results_pending", "published", "retention"].includes(st) ? await integrityReport(eid, tx) : null,
@@ -65,7 +67,16 @@ export default async function Results({ params }: { params: Promise<{ cid: strin
         </Card>
       )}
 
-      {st === "results_pending" && (
+      {!canSeeTallies && (
+        <Card>
+          <h2 className="font-semibold">Turnout by position</h2>
+          <ul className="mt-4 space-y-3 text-sm">{d.r.positions.map((p) => (
+            <li key={p.id} className="flex justify-between gap-3"><span>{p.name}</span><span className="tabular text-g600">{p.participants}/{p.eligible} · {pct(p.participants, p.eligible).toFixed(1)}%</span></li>))}</ul>
+          <Notice tone="info" className="mt-5">Who is leading or has won stays confidential until the Super Admin publishes the results. You can still pause, resume and close voting from the Overview.</Notice>
+        </Card>
+      )}
+      {st === "results_pending" && !isSuper && <Notice tone="info">Voting has closed. The Super Admin reviews and publishes the results.</Notice>}
+      {st === "results_pending" && isSuper && (
         <Card className="border-ink">
           <h2 className="font-semibold">Publish results</h2>
           <p className="mt-1 text-sm text-g600">Publishing freezes an immutable snapshot of these totals and makes them visible at the public results link. Ties are shown as ties.{e.allow_unpublish ? ` You can unpublish within ${CORRECTION_WINDOW_HOURS} hours if a correction is needed.` : ""}</p>
@@ -78,12 +89,12 @@ export default async function Results({ params }: { params: Promise<{ cid: strin
           ) : <Notice tone="warning" className="mt-4">Resolve the items above before publishing.</Notice>}
         </Card>
       )}
-      {st === "published" && e.allow_unpublish && (
+      {st === "published" && e.allow_unpublish && isSuper && (
         <Confirm triggerClass="text-sm text-g600 underline hover:text-danger" trigger="Unpublish results (correction window)…" title="Unpublish results?" tone="danger" confirmLabel="Unpublish"
           body={<p>The public page stops showing results and the election returns to review. The previous snapshot stays in the history.</p>} action={lifecycleAction} hidden={{ ...H, op: "unpublish" }} reasonLabel="Reason (audit-logged)" />
       )}
 
-      <ResultsView r={d.r} provisional={!published} />
+      {canSeeTallies && <ResultsView r={d.r} provisional={!published} />}
 
       {d.history.length > 0 && (
         <Card><h2 className="mb-3 font-semibold">Publication history</h2>

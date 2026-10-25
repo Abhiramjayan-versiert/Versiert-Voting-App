@@ -68,7 +68,9 @@ export function Confirm({ trigger, title, body, action, confirmLabel = "Confirm"
   const ref = useRef<HTMLDialogElement>(null);
   const [typed, setTyped] = useState("");
   const [state, formAction, pending] = useActionState(action, null);
-  useEffect(() => { if (state?.ok) ref.current?.close(); }, [state]);
+  const revealed = state?.ok ? (state.data as { link?: string } | undefined)?.link : undefined;
+  // Keep the dialog open when the action returns a link to hand over (e.g. a single-use voting or reset link).
+  useEffect(() => { if (state?.ok && !revealed) ref.current?.close(); }, [state, revealed]);
   return (
     <>
       <button type="button" className={triggerClass} onClick={() => { setTyped(""); ref.current?.showModal(); }}>{trigger}</button>
@@ -91,8 +93,9 @@ export function Confirm({ trigger, title, body, action, confirmLabel = "Confirm"
             </div>
           )}
           {state?.error && <Notice tone="error" className="mt-4">{state.error}</Notice>}
+          {revealed && <>{state?.message && <Notice tone="success" className="mt-4">{state.message}</Notice>}<LinkReveal link={revealed} /></>}
           <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <button type="button" onClick={() => ref.current?.close()} className="h-11 rounded-full border border-g300 px-5 text-sm font-medium hover:border-ink">Cancel</button>
+            <button type="button" onClick={() => ref.current?.close()} className="h-11 rounded-full border border-g300 px-5 text-sm font-medium hover:border-ink">{revealed ? "Done" : "Cancel"}</button>
             <PendingCtx.Provider value={pending}><SubmitButton variant={tone} disabled={!!requireText && typed !== requireText}>{confirmLabel}</SubmitButton></PendingCtx.Provider>
           </div>
         </form>
