@@ -226,6 +226,23 @@ describe("Super Admin college and administrator management", () => {
   });
 });
 
+describe("publishing when the scheduled close hasn't run yet", () => {
+  it("records the close and publishes an election whose voting window has ended", async () => {
+    const f = await makeElection({ voters: 2 });
+    await cast(await session(f, 0), [{ position_id: f.positions[0].id, candidate_ids: [f.positions[0].cands[0]] }]);
+    await ownerDb()`update elections set ends_at = now() - interval '5 minutes', results_require_approval = true where id = ${f.electionId}`;
+    const sup: Ctx = { role: "super_admin", userId: actor.id };
+    await E.publish(sup, actor, f.electionId);
+    const [e] = await ownerDb()`select status, closed_at, ends_at from elections where id = ${f.electionId}`;
+    expect(e.status).toBe("published");
+    expect(new Date(e.closed_at).getTime()).toBe(new Date(e.ends_at).getTime());
+  });
+  it("still refuses to publish while voting is open", async () => {
+    const f = await makeElection();
+    await expect(E.publish({ role: "super_admin", userId: actor.id }, actor, f.electionId)).rejects.toThrow(/only after the election has closed/);
+  });
+});
+
 describe("retention and deletion lifecycle", () => {
   it("refuses premature purge, then deletes personal data and keeps the public aggregate", async () => {
     const f = await makeElection({ voters: 3, retentionDays: 1, keepPublic: true });

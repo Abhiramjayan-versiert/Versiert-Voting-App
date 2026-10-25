@@ -427,6 +427,13 @@ export async function integrityReport(electionId: string, tx: Sql): Promise<Inte
 export async function publish(ctx: Ctx, actor: Actor, electionId: string, opts: { auto?: boolean } = {}) {
   return withCtx(ctx, async (tx) => {
     const e = await mustGet(ctx, tx, electionId, true);
+    // The voting window ended but the scheduled job hasn't recorded the close yet (daily cron on Vercel Hobby): record it now.
+    if ((e.status === "open" || e.status === "scheduled") && new Date(e.ends_at) <= new Date()) {
+      await tx`update elections set status = 'results_pending', closed_at = coalesce(closed_at, ends_at) where id = ${electionId}`;
+      await tx`update voter_sessions set revoked_at = now() where election_id = ${electionId} and revoked_at is null`;
+      await audit({ actorLabel: "system:close-on-publish", collegeId: e.college_id, electionId, action: "election.closed" }, tx);
+      e.status = "results_pending";
+    }
     if (e.status !== "results_pending") throw new UserError("Results can be published only after the election has closed and is pending review.");
     const integrity = await integrityReport(electionId, tx);
     if (!integrity.ok) throw new UserError("Integrity checks have not all passed. Resolve the flagged items first.");
