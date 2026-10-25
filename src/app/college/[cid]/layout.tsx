@@ -26,7 +26,7 @@ export default async function CollegeLayout({ children, params }: { children: Re
       </div>
       {(s.collegeIds.length > 1 || s.user.role === "super_admin") && <Link href="/college" className="mt-2 inline-block text-xs text-g400 underline hover:text-lime">Switch college</Link>}
       {s.user.role === "super_admin" && <Link href="/platform" className="mt-1 block text-xs text-lime underline">← Developer console</Link>}
-      {isTestMode() && <p className="mt-2 text-[0.7rem] text-lime">TEST MODE — fictional data</p>}
+      {isTestMode() && <p className="mt-2 text-[0.7rem] text-lime">TEST MODE, fictional data</p>}
     </div>
   );
   return (

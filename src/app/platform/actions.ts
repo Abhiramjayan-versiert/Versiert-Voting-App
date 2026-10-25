@@ -22,7 +22,7 @@ async function actor() {
 }
 
 const collegeSchema = z.object({
-  code: z.string().trim().toUpperCase().regex(/^[A-Z0-9][A-Z0-9-]{1,23}$/, "College code: 2–24 letters, digits or dashes."),
+  code: z.string().trim().toUpperCase().regex(/^[A-Z0-9][A-Z0-9-]{1,23}$/, "College code: 2-24 letters, digits or dashes."),
   name: z.string().trim().min(2, "College name is required.").max(160),
   short_name: z.string().trim().max(40).optional(),
   city: z.string().trim().max(80).optional(),
@@ -125,7 +125,7 @@ export async function inviteAdminAction(_: ActionState, fd: FormData): Promise<A
     const token = await issueToken(result, "invite", a.id, 72);
     const link = `${env().APP_URL}/invite/${token}`;
     const mail = await sendMailNow({ to: email, subject: "You're invited to administer elections on V.app",
-      text: `Hello ${name},\n\nYou've been invited to manage elections on V.app.\n\nActivate your account (link valid for 72 hours, single use):\n${link}\n\nIf you weren't expecting this, you can ignore this email.\n\n— V.app · Your campus. Your choice.` });
+      text: `Hello ${name},\n\nYou've been invited to manage elections on V.app.\n\nActivate your account (link valid for 72 hours, single use):\n${link}\n\nIf you weren't expecting this, you can ignore this email.\n\nV.app · Your campus. Your choice.` });
     revalidatePath("/platform/admins");
     return { ok: true, message: mail.ok ? `Invitation sent to ${email}.` : `Invitation created but the email could not be sent (${mail.error}). Share the link securely instead.`,
       data: isTestMode() || !mail.ok ? { link } : undefined };
@@ -367,7 +367,7 @@ export async function updateAdminAction(_: ActionState, fd: FormData): Promise<A
       if (dup) throw new UserError("Another account already uses that email address.");
       await tx`update users set name = ${name}, email = ${email} where id = ${userId}`;
       if (email !== u.email) {
-        // Pending invitation/reset links were addressed to the old email — invalidate them.
+        // Pending invitation/reset links were addressed to the old email, invalidate them.
         await tx`update auth_tokens set used_at = now() where user_id = ${userId} and used_at is null`;
       }
       await audit({ actorId: a.id, actorLabel: a.label, action: "admin.update", target: email,

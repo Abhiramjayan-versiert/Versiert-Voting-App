@@ -13,7 +13,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<Re
   const s = await getAdminSession();
   if (s && s.mfaPassed) redirect(s.user.role === "super_admin" ? "/platform" : "/college");
   return (
-    <AuthShell title="Sign in" subtitle="For college election administrators and the platform owner. Students don't need an account — use your election link.">
+    <AuthShell title="Sign in" subtitle="For college election administrators and the platform owner. Students don't need an account. Use your election link.">
       {sp.signed_out && <Notice tone="info" className="mb-5">You have been signed out.</Notice>}
       {sp.welcome && <Notice tone="success" className="mb-5">Your account is ready. Sign in with your new password.</Notice>}
       {sp.reset && <Notice tone="success" className="mb-5">Password updated. Sign in with your new password.</Notice>}

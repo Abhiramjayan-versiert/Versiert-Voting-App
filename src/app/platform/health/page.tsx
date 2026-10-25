@@ -21,10 +21,10 @@ export default async function Health() {
   const e = env();
   const checks = [
     { n: "Database reachable", ok: true, d: `${latency} ms round trip · PostgreSQL ${d.v.sv}` },
-    { n: "Runtime mode", ok: e.APP_MODE === "production", d: e.APP_MODE === "test" ? "TEST MODE — fictional data, dev mailbox enabled" : "Production" },
+    { n: "Runtime mode", ok: e.APP_MODE === "production", d: e.APP_MODE === "test" ? "TEST MODE, fictional data, dev mailbox enabled" : "Production" },
     { n: "HTTPS application URL", ok: e.APP_URL.startsWith("https://"), d: e.APP_URL },
-    { n: "Email provider (optional)", ok: true, d: e.RESEND_API_KEY ? `Resend · from ${e.EMAIL_FROM}` : "Not configured — invitation and reset links are shown on screen; voters verify with email + student ID" },
-    { n: "Bot challenge (Turnstile)", ok: !!e.TURNSTILE_SECRET_KEY, d: e.TURNSTILE_SECRET_KEY ? "Configured — shown on suspicious volume" : "Optional — not configured; rate limits still apply" },
+    { n: "Email provider (optional)", ok: true, d: e.RESEND_API_KEY ? `Resend · from ${e.EMAIL_FROM}` : "Not configured, invitation and reset links are shown on screen; voters verify with email + student ID" },
+    { n: "Bot challenge (Turnstile)", ok: !!e.TURNSTILE_SECRET_KEY, d: e.TURNSTILE_SECRET_KEY ? "Configured, shown on suspicious volume" : "Optional, not configured; rate limits still apply" },
     { n: "Lifecycle cron ran in the last 15 min", ok: d.jobs.some((j) => j.job === "lifecycle" && Date.now() - new Date(j.started_at).getTime() < 15 * 60_000), d: relTime(d.jobs.find((j) => j.job === "lifecycle")?.started_at) },
     { n: "Retention cron ran in the last 26 h", ok: d.jobs.some((j) => j.job === "retention" && Date.now() - new Date(j.started_at).getTime() < 26 * 3600_000), d: relTime(d.jobs.find((j) => j.job === "retention")?.started_at) },
   ];

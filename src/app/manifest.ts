@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "V.app — Campus elections",
+    name: "V.app, Campus elections",
     short_name: "V.app",
     description: "Secure, private elections for colleges and student unions. Your campus. Your choice.",
     id: "/",

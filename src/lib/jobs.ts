@@ -22,7 +22,7 @@ async function track<T extends Record<string, unknown>>(job: string, fn: () => P
 const SYSTEM_ACTOR = { id: "00000000-0000-0000-0000-000000000000", label: "system:cron" };
 export const CORRECTION_WINDOW_HOURS = 24;
 
-/** Advances time-based lifecycle states. Idempotent — safe to run every minute. */
+/** Advances time-based lifecycle states. Idempotent, safe to run every minute. */
 export function lifecycleTick() {
   return track("lifecycle", async () => {
     return withCtx(systemCtx, async (tx) => {
@@ -65,8 +65,8 @@ export function retentionRun(opts: { onlyElectionId?: string; force?: boolean } 
       const admins = await withCtx(systemCtx, (tx) => tx`select u.email from college_admins ca join users u on u.id = ca.user_id where ca.college_id = ${n.college_id} and u.status = 'active'`);
       for (const a of admins) {
         await queueNotification({ to: a.email, kind: "pre_deletion_notice", collegeId: n.college_id, electionId: n.election_id, dedupeKey: `predel:${n.id}:${a.email}`,
-          subject: `Scheduled data deletion — ${n.title}`,
-          text: `Under the retention policy for "${n.title}", the voter list, verification records and ballot data will be permanently deleted on or after ${new Date(n.run_after).toUTCString()}.\n\n${n.keep_public_results ? `The published aggregate results (${env().APP_URL}/r/${n.public_ref}) will remain available.` : "The published results page will also be removed."}\n\nExport any reports you need before then. — V.app` });
+          subject: `Scheduled data deletion, ${n.title}`,
+          text: `Under the retention policy for "${n.title}", the voter list, verification records and ballot data will be permanently deleted on or after ${new Date(n.run_after).toUTCString()}.\n\n${n.keep_public_results ? `The published aggregate results (${env().APP_URL}/r/${n.public_ref}) will remain available.` : "The published results page will also be removed."}\n\nExport any reports you need before then., V.app` });
       }
       await withCtx(systemCtx, (tx) => tx`update cleanup_jobs set status = 'notified', notified_at = now() where id = ${n.id} and status = 'scheduled'`);
       notified++;

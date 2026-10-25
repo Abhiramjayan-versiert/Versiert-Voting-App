@@ -19,7 +19,7 @@ export default async function Voters({ params, searchParams }: { params: Promise
   const page = Math.max(1, Number(sp.page) || 1);
   const d = await withCtx(ctx, async (tx) => ({
     total: (await tx`select count(*)::int as n from voters where election_id = ${eid}`)[0].n as number,
-    groups: await tx`select coalesce(voter_group, '—') as g, count(*)::int as n from voters where election_id = ${eid} group by 1 order by 2 desc limit 20`,
+    groups: await tx`select coalesce(voter_group, '-') as g, count(*)::int as n from voters where election_id = ${eid} group by 1 order by 2 desc limit 20`,
     rows: await tx`select v.id, v.email, v.name, v.student_id, v.voter_group, v.created_at,
                     exists (select 1 from participations p where p.voter_id = v.id) as voted
                    from voters v where v.election_id = ${eid} and (${q} = '' or v.email like ${"%" + q + "%"} or lower(coalesce(v.name, '')) like ${"%" + q + "%"} or lower(coalesce(v.student_id, '')) like ${"%" + q + "%"})
@@ -38,7 +38,7 @@ export default async function Voters({ params, searchParams }: { params: Promise
           {canImport && (
             <Card>
               <h2 className="text-lg font-semibold">Import eligible voters</h2>
-              <p className="mt-1 mb-5 text-sm text-g600">Required columns: <strong>email</strong> and <strong>student ID</strong> — students verify with both, so keep student IDs private. Emails and IDs must be unique. Re-importing adds new addresses and skips existing ones.</p>
+              <p className="mt-1 mb-5 text-sm text-g600">Required columns: <strong>email</strong> and <strong>student ID</strong>. Students verify with both, so keep student IDs private. Emails and IDs must be unique. Re-importing adds new addresses and skips existing ones.</p>
               <VoterImport electionId={eid} previewAction={previewImportAction} commitAction={commitImportAction} maxMb={cfg.max_import_mb} />
             </Card>
           )}
@@ -52,12 +52,12 @@ export default async function Voters({ params, searchParams }: { params: Promise
                 <Table caption="Eligible voters">
                   <thead><tr><th>Email</th><th>Name</th><th>Student ID</th><th>Group</th>{showVoted && <th>Participation</th>}{e.status === "draft" && <th><span className="sr-only">Remove</span></th>}</tr></thead>
                   <tbody>{d.rows.map((v) => (
-                    <tr key={v.id}><td className="font-mono text-[0.8rem]">{v.email}</td><td>{v.name ?? "—"}</td><td>{v.student_id ?? "—"}</td><td>{v.voter_group ?? "—"}</td>
+                    <tr key={v.id}><td className="font-mono text-[0.8rem]">{v.email}</td><td>{v.name ?? "-"}</td><td>{v.student_id ?? "-"}</td><td>{v.voter_group ?? "-"}</td>
                       {showVoted && <td>{v.voted ? <Badge tone="completed">Voted</Badge> : canPass ? (
                         <Confirm triggerClass="text-xs underline hover:text-ink" trigger="Give voting access" title={`Give ${v.email} direct voting access?`} confirmLabel="Create voting link" tone="primary"
-                          body={<p>Use this only when the student can't verify (for example a typo in the uploaded email or ID) and you've confirmed it's really them, e.g. by ID card. You get a single-use link, valid 30 minutes, that opens their ballot directly. Send it only to this student. They can still vote only once per position.</p>}
+                          body={<p>Use this only when the student can't verify (for example a typo in the uploaded email or ID) and you've confirmed it's really them, e.g. by ID card. You get a single-use link. Valid 30 minutes, that opens their ballot directly. Send it only to this student. They can still vote only once per position.</p>}
                           action={issueVotingPassAction} hidden={{ election_id: eid, voter_id: v.id }} reasonLabel="How did you confirm it's this student?" />
-                      ) : <span className="text-g500">—</span>}</td>}
+                      ) : <span className="text-g500">-</span>}</td>}
                       {e.status === "draft" && <td><Confirm triggerClass="text-xs text-g500 underline hover:text-danger" trigger="Remove" title="Remove this voter?" confirmLabel="Remove" tone="danger" body={<p>{v.email} will no longer be eligible.</p>} action={removeVotersAction} hidden={{ election_id: eid, voter_id: v.id }} /></td>}
                     </tr>))}
                   </tbody>

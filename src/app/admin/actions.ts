@@ -126,7 +126,7 @@ export async function forgotAction(_: ActionState, fd: FormData): Promise<Action
     if (!u || u.role !== "college_admin" || u.status !== "active") return generic;
     const token = randomToken();
     await sql()`insert into auth_tokens (user_id, purpose, token_hash, expires_at) values (${u.id}, 'password_reset', ${sha256(token)}, now() + interval '30 minutes')`;
-    await sendMailNow({ to: u.email, subject: "Reset your V.app password", text: `A password reset was requested for your V.app administrator account.\n\nReset link (valid 30 minutes, single use):\n${env().APP_URL}/admin/reset/${token}\n\nIf you didn't request this, ignore this email — your password is unchanged.` });
+    await sendMailNow({ to: u.email, subject: "Reset your V.app password", text: `A password reset was requested for your V.app administrator account.\n\nReset link (valid 30 minutes, single use):\n${env().APP_URL}/admin/reset/${token}\n\nIf you didn't request this, ignore this email. Your password is unchanged.` });
     await audit({ actorId: u.id, actorLabel: u.email, action: "auth.password_reset_requested", ipHash: ip });
     return generic;
   });

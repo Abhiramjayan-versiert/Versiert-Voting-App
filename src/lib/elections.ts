@@ -407,7 +407,7 @@ export async function integrityReport(electionId: string, tx: Sql): Promise<Inte
     const abst = rows.filter((r) => !r.candidate_id).reduce((s, r) => s + r.votes, 0);
     const marks = rows.filter((r) => r.candidate_id).reduce((s, r) => s + r.votes, 0);
     const ok = p.max_selections === 1 ? abst + marks === participants : abst + marks >= participants && marks + abst <= participants * p.max_selections;
-    checks.push({ name: `Ballot count matches participation — ${p.name}`, ok, detail: `${participants} participant(s), ${marks} candidate mark(s), ${abst} abstention(s)` });
+    checks.push({ name: `Ballot count matches participation, ${p.name}`, ok, detail: `${participants} participant(s), ${marks} candidate mark(s), ${abst} abstention(s)` });
   }
   const [orphans] = await tx`select count(*)::int as n from ballot.tally(${electionId}) t
                                where t.candidate_id is not null and not exists (select 1 from candidates c where c.id = t.candidate_id and c.position_id = t.position_id)`;
@@ -461,8 +461,8 @@ export async function publish(ctx: Ctx, actor: Actor, electionId: string, opts: 
     const admins = await tx`select u.email from college_admins ca join users u on u.id = ca.user_id where ca.college_id = ${e.college_id} and u.status = 'active'`;
     for (const a of admins) {
       await queueNotification({ to: a.email, kind: "results_published", collegeId: e.college_id, electionId, dedupeKey: `pub:${snap.id}:${a.email}`,
-        subject: `Results published — ${e.title}`,
-        text: `Results for "${e.title}" are now published.\n\nPublic results: ${env().APP_URL}/r/${e.public_ref}\n\nUnder the retention policy, the election's voter list and ballot data will be deleted on ${purge.toUTCString()}${e.keep_public_results ? "; the aggregate results page will remain available." : ", together with the results page."}\n\n— V.app` }, tx);
+        subject: `Results published, ${e.title}`,
+        text: `Results for "${e.title}" are now published.\n\nPublic results: ${env().APP_URL}/r/${e.public_ref}\n\nUnder the retention policy, the election's voter list and ballot data will be deleted on ${purge.toUTCString()}${e.keep_public_results ? "; the aggregate results page will remain available." : ", together with the results page."}\n\nV.app` }, tx);
     }
     return snap.id as string;
   });
@@ -518,7 +518,7 @@ export async function queueVoterEmails(ctx: Ctx, actor: Actor, electionId: strin
     let n = 0;
     const stamp = kind === "invitation" ? "inv" : `rem-${new Date().toISOString().slice(0, 13)}`;
     for (const v of voters) {
-      const subject = kind === "invitation" ? `You're invited to vote — ${e.title}` : `Voting closes soon — ${e.title}`;
+      const subject = kind === "invitation" ? `You're invited to vote, ${e.title}` : `Voting closes soon, ${e.title}`;
       const text = kind === "invitation"
         ? `Welcome to V.app. Your campus. Your choice.\n\nYou are on the voter list for "${e.title}" (${e.event_name}).\nVoting opens ${tzFmt(e.starts_at)} and closes ${tzFmt(e.ends_at)} (${e.timezone}).\n\nVote here: ${url}\nYou'll verify this email address with a one-time code. Every valid vote counts.`
         : `Reminder: voting for "${e.title}" closes ${tzFmt(e.ends_at)} (${e.timezone}).\n\nIf you haven't finished voting, go to ${url}\n\nEvery valid vote counts.`;

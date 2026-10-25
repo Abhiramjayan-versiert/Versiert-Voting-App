@@ -48,10 +48,10 @@ export default async function Config() {
           <section>
             <h2 className="text-lg font-semibold">Rate limits & imports</h2>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              {num("rate_otp_per_ip_per_hour", "Voter verification attempts per network per hour", "Campus Wi-Fi shares one IP — keep this generous.")}
+              {num("rate_otp_per_ip_per_hour", "Voter verification attempts per network per hour", "Campus Wi-Fi shares one IP. Keep this generous.")}
               {num("rate_login_per_ip_per_15min", "Admin sign-in attempts per network per 15 min")}
               {num("max_import_rows", "Maximum rows per voter import")}
-              {num("max_import_mb", "Maximum import file size (MB)", "Hard ceiling 4 MB — Vercel's request body limit is 4.5 MB.")}
+              {num("max_import_mb", "Maximum import file size (MB)", "Hard ceiling 4 MB. Vercel's request body limit is 4.5 MB.")}
             </div>
           </section>
           <section>

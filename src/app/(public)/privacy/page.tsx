@@ -10,7 +10,7 @@ export default function Privacy() {
         <p className="eyebrow text-g500">Privacy model</p>
         <h1 className="mt-3 text-[2.4rem] font-semibold leading-tight">How V.app keeps your vote private</h1>
         <Prose>
-          <p className="text-lg">We want you to understand exactly what V.app protects — and what it doesn't — in plain language.</p>
+          <p className="text-lg">We want you to understand exactly what V.app protects, and what it doesn't, in plain language.</p>
           <h2>What we store when you vote</h2>
           <ul>
             <li><strong>Participation:</strong> that your verified address voted for a given position. This is how we stop anyone voting twice and how administrators see turnout.</li>
@@ -21,13 +21,13 @@ export default function Privacy() {
           <ul>
             <li><strong>Election administrators</strong> see the voter list, turnout and (depending on the election's settings) running totals. They cannot see how any student voted.</li>
             <li><strong>The platform owner</strong> manages colleges and accounts, and also has no screen or export that reveals individual choices.</li>
-            <li><strong>The public</strong> sees published aggregate results only — never names, emails or turnout per person.</li>
+            <li><strong>The public</strong> sees published aggregate results only, never names, emails or turnout per person.</li>
           </ul>
           <h2>Honest limits</h2>
           <ul>
-            <li>This is privacy enforced by database design and access controls — <strong>not</strong> a cryptographic anonymous-voting protocol. Someone with full, direct database-server access and deep forensic tooling could attempt to correlate records by physical storage order. We document this risk rather than hide it.</li>
+            <li>This is privacy enforced by database design and access controls, <strong>not</strong> a cryptographic anonymous-voting protocol. Someone with full, direct database-server access and deep forensic tooling could attempt to correlate records by physical storage order. We document this risk rather than hide it.</li>
             <li>With very few voters, totals themselves can reveal choices (e.g. if only one person voted). Administrators are warned about live tallies for small electorates.</li>
-            <li>Verification uses your registered email and student ID. Anyone who knows both could try to vote as you — keep your student ID private during elections. It also can't prove nobody is pressuring you. Vote somewhere private.</li>
+            <li>Verification uses your registered email and student ID. Anyone who knows both could try to vote as you. Keep your student ID private during elections. It also can't prove nobody is pressuring you. Vote somewhere private.</li>
             <li>An election may be configured as an <strong>open ballot</strong>, where choices are linked to voters. You'll always be told clearly before voting.</li>
           </ul>
           <h2>How long data is kept</h2>

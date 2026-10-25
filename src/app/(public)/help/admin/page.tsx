@@ -14,8 +14,8 @@ export default function AdminGuide() {
           <p>Dashboard → <strong>New election</strong>. Enter the event name, title, voting window and timezone. Everything stays editable while the election is a draft.</p>
           <h2>2. Import eligible voters</h2>
           <ul>
-            <li>Upload <code>.xlsx</code>, <code>.xls</code> or <code>.csv</code> (first sheet, headers in row 1, max 4 MB). <strong>Email and student ID columns are required</strong> — students verify with both. Name and group are optional. Student IDs must be unique.</li>
-            <li>Preview shows accepted, invalid and duplicate rows before anything is saved. Download the rejected rows, fix them, and upload again — existing addresses are skipped, never duplicated.</li>
+            <li>Upload <code>.xlsx</code>, <code>.xls</code> or <code>.csv</code> (first sheet, headers in row 1, max 4 MB). <strong>Email and student ID columns are required</strong>. Students verify with both. Name and group are optional. Student IDs must be unique.</li>
+            <li>Preview shows accepted, invalid and duplicate rows before anything is saved. Download the rejected rows, fix them, and upload again. Existing addresses are skipped, never duplicated.</li>
             <li>The spreadsheet itself is never stored.</li>
           </ul>
           <h2>3. Positions and candidates</h2>
@@ -27,11 +27,11 @@ export default function AdminGuide() {
           <h2>During voting</h2>
           <ul>
             <li><strong>Live monitor</strong> shows turnout by position, blocked duplicate attempts and, if enabled, provisional tallies.</li>
-            <li>Emergencies: <strong>Pause</strong> (sessions end immediately), make an amendment (add voters, withdraw a candidate — always with a written reason), then <strong>Resume</strong>, optionally extending the closing time. Submitted ballots can never be edited or deleted by anyone.</li>
+            <li>Emergencies: <strong>Pause</strong> (sessions end immediately), make an amendment (add voters, withdraw a candidate, always with a written reason), then <strong>Resume</strong>, optionally extending the closing time. Submitted ballots can never be edited or deleted by anyone.</li>
             <li><strong>Report an incident</strong> if something looks wrong; publication is blocked until it's resolved with a note.</li>
           </ul>
           <h2>Publishing results</h2>
-          <p>After closing, review the integrity checks (ballot counts match participation, no duplicates, audit chain intact, no open incidents), then publish. Ties are displayed as ties — apply your college's tie-break rules. You may unpublish within 24 hours if your settings allow it.</p>
+          <p>After closing, review the integrity checks (ballot counts match participation, no duplicates, audit chain intact, no open incidents), then publish. Ties are displayed as ties. Apply your college's tie-break rules. You may unpublish within 24 hours if your settings allow it.</p>
           <h2>Exports</h2>
           <p>Excel report (summary, candidate results, position summary, participation by group), CSVs, rejected import rows, and the election's audit records. Secret-ballot choices are never exported.</p>
           <h2>Retention</h2>

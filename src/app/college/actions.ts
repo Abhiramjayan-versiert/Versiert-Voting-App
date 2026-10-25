@@ -165,7 +165,7 @@ export async function issueVotingPassAction(_: ActionState, fd: FormData): Promi
     const { env } = await import("@/lib/env");
     const pass = await issueVotingPass(e.id, id, v.email);
     await withCtx(ctx, (tx) => audit({ actorId: a.id, actorLabel: a.label, collegeId: e.college_id, electionId: e.id, action: "voter.voting_pass_issued", target: v.email, details: { reason }, ipHash: a.ipHash }, tx));
-    return { ok: true, message: `Single-use voting link for ${v.email} — valid ${pass.minutes} minutes. Send it only to this student.`,
+    return { ok: true, message: `Single-use voting link for ${v.email}, valid ${pass.minutes} minutes. Send it only to this student.`,
       data: { link: `${env().APP_URL}/e/${e.slug}/pass/${pass.token}` } };
   });
 }

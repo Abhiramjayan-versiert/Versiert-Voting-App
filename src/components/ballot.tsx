@@ -64,14 +64,14 @@ export function Ballot({ slug, title, closesLabel, allowAbstain, requireAll, pos
   }
 
   async function submit() {
-    if (preview) { setConfirming(false); setError("Preview mode — ballots can't be submitted from here."); return; }
+    if (preview) { setConfirming(false); setError("Preview mode, ballots can't be submitted from here."); return; }
     setSubmitting(true); setError(null);
     const choices = answered.map((p) => ({ position_id: p.id, candidate_ids: sel[p.id] === "abstain" ? [] : chosen(p.id) }));
     try {
       const res = await fetch(`/e/${slug}/submit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ idempotencyKey: idemKey, checkCode, choices }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? "Your ballot could not be submitted. Nothing was recorded — please try again.");
+        setError(data.error ?? "Your ballot could not be submitted. Nothing was recorded. Please try again.");
         if (data.code === "SESSION_INVALID") setTimeout(() => router.replace(`/e/${slug}/verify?expired=1`), 1800);
         setSubmitting(false); setConfirming(false); return;
       }
@@ -80,8 +80,8 @@ export function Ballot({ slug, title, closesLabel, allowAbstain, requireAll, pos
       sessionStorage.setItem(`vapp-receipt-${slug}`, JSON.stringify({ ...data, checkCode: data.accepted > 0 ? checkCode : null }));
       router.replace(`/e/${slug}/done`);
     } catch {
-      // Network failure: the same idempotency key makes a retry safe — it can never create a second ballot.
-      setError("Network problem. Check your connection and press Submit again — retrying is safe and can't count your vote twice.");
+      // Network failure: the same idempotency key makes a retry safe, it can never create a second ballot.
+      setError("Network problem. Check your connection and press Submit again. Retrying is safe and can't count your vote twice.");
       setSubmitting(false); setConfirming(false);
     }
   }
@@ -156,7 +156,7 @@ export function Ballot({ slug, title, closesLabel, allowAbstain, requireAll, pos
                 <li key={p.id} className="flex items-center justify-between gap-3 p-4">
                   <div className="min-w-0">
                     <p className="text-xs text-g500">{p.name}</p>
-                    <p className="font-medium">{sel[p.id] === "abstain" ? "Abstain" : c.length ? c.map((id) => candidates.find((x) => x.id === id)?.full_name).join(", ") : <span className="text-g400">No selection — {requireAll ? "required" : "not submitted"}</span>}</p>
+                    <p className="font-medium">{sel[p.id] === "abstain" ? "Abstain" : c.length ? c.map((id) => candidates.find((x) => x.id === id)?.full_name).join(", ") : <span className="text-g400">No selection, {requireAll ? "required" : "not submitted"}</span>}</p>
                   </div>
                   <button type="button" onClick={() => setStep(i)} className="shrink-0 rounded-full border border-g300 px-3 py-1.5 text-sm hover:border-ink">Change</button>
                 </li>

@@ -121,7 +121,7 @@ export function PrintButton({ className }: { className?: string }) {
 function LinkReveal({ link }: { link: string }) {
   return (
     <div className="mt-3 rounded-xl border border-g300 bg-g50 p-3 text-ink">
-      <p className="text-xs text-g600">Single-use link — share it only with the account holder over a trusted channel:</p>
+      <p className="text-xs text-g600">Single-use link. Share it only with the account holder over a trusted channel:</p>
       <p className="mt-1 break-all font-mono text-[0.78rem]">{link}</p>
       <CopyButton text={link} className="mt-2" />
     </div>

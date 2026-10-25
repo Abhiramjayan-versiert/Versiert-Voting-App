@@ -17,8 +17,8 @@ export default async function Profile({ params }: { params: Promise<{ cid: strin
           {c.has_logo && <img src={`/media/logo/${cid}`} alt={`${c.name} logo`} className="mb-4 h-16 rounded-lg object-contain" />}
           <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-3 text-sm">
             <dt className="text-g500">Code</dt><dd className="font-mono">{c.code}</dd>
-            <dt className="text-g500">Short name</dt><dd>{c.short_name ?? "—"}</dd>
-            <dt className="text-g500">City</dt><dd>{c.city ?? "—"}</dd>
+            <dt className="text-g500">Short name</dt><dd>{c.short_name ?? "-"}</dd>
+            <dt className="text-g500">City</dt><dd>{c.city ?? "-"}</dd>
             <dt className="text-g500">Default retention</dt><dd>{c.default_retention_days} days after publication</dd>
           </dl>
         </Card>

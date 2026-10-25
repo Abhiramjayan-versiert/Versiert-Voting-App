@@ -8,7 +8,7 @@ export async function clientIp() {
   // On Vercel x-forwarded-for is set by the platform edge; first entry is the client.
   return (h.get("x-forwarded-for")?.split(",")[0] ?? h.get("x-real-ip") ?? "0.0.0.0").trim();
 }
-/** IPs are never stored raw — only as a keyed hash, useful for correlation and rate limits. */
+/** IPs are never stored raw, only as a keyed hash, useful for correlation and rate limits. */
 export async function ipHash() {
   return hmac(env().HMAC_SECRET, "ip:" + (await clientIp())).slice(0, 32);
 }

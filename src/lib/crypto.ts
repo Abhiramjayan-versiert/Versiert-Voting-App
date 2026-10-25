@@ -39,7 +39,7 @@ export function decrypt(blob: string, k: string) {
   return Buffer.concat([d.update(Buffer.from(body, "base64url")), d.final()]).toString("utf8");
 }
 
-// ---- RFC 6238 TOTP (SHA-1, 30s, 6 digits — compatible with standard authenticator apps) ----
+// ---- RFC 6238 TOTP (SHA-1, 30s, 6 digits, compatible with standard authenticator apps) ----
 const B32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 export function base32Encode(buf: Buffer) {
   let bits = 0, value = 0, out = "";

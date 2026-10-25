@@ -21,7 +21,7 @@ export default async function PlatformLayout({ children }: { children: React.Rea
   ];
   return (
     <AdminShell dark items={items} user={s.user} roleLabel="Developer · Super Admin"
-      top={isTestMode() ? <p className="mx-2 mb-3 rounded-lg border border-lime/40 bg-lime/10 px-3 py-2 text-[0.75rem] text-lime">TEST MODE — fictional data</p> : null}>
+      top={isTestMode() ? <p className="mx-2 mb-3 rounded-lg border border-lime/40 bg-lime/10 px-3 py-2 text-[0.75rem] text-lime">TEST MODE, fictional data</p> : null}>
       {children}
     </AdminShell>
   );

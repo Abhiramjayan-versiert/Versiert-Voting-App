@@ -35,12 +35,12 @@ export default async function Elections({ searchParams }: { searchParams: Promis
             <tr key={e.id}><td><Link href={`/college/${e.college_id}/elections/${e.id}`} className="font-medium hover:text-lime">{e.title}</Link><span className="block font-mono text-xs text-g500">{e.public_ref}</span></td><td className="text-g300">{e.college}</td>
               <td><Badge tone={st}>{STATUS_LABEL[st]}</Badge></td><td className="text-g300 text-xs">{fmtDate(e.starts_at, e.timezone)}<br />{fmtDate(e.ends_at, e.timezone)}</td>
               <td className="tabular">{e.positions}</td><td className="tabular">{e.participants}/{e.voters}</td><td>{e.secret_ballot ? "Secret" : "Open"}</td>
-              <td>{e.flags ? <Badge tone="warning">{e.flags}</Badge> : "—"}</td><td className="text-g300 text-xs">{fmtDate(e.purge_after)}</td>
+              <td>{e.flags ? <Badge tone="warning">{e.flags}</Badge> : "-"}</td><td className="text-g300 text-xs">{fmtDate(e.purge_after)}</td>
               <td className="whitespace-nowrap text-xs">
                 <Link href={`/college/${e.college_id}/elections/${e.id}`} className="mr-3 text-lime underline">Manage</Link>
                 <Link href={`/college/${e.college_id}/elections/${e.id}/results`} className="mr-3 text-g300 underline hover:text-lime">Results</Link>
                 <Confirm triggerClass="text-[#ff9b94] underline" trigger="Delete" title={`Permanently delete “${e.title}”?`} tone="danger" confirmLabel="Delete permanently"
-                  body={<><p>The election, its voter list, positions, candidates, ballots and results are deleted for good. This cannot be undone.</p>{["open", "paused"].includes(st) && <p className="font-medium text-danger">Voting is in progress — students will lose access immediately.</p>}</>}
+                  body={<><p>The election, its voter list, positions, candidates, ballots and results are deleted for good. This cannot be undone.</p>{["open", "paused"].includes(st) && <p className="font-medium text-danger">Voting is in progress. Students will lose access immediately.</p>}</>}
                   action={deleteAnyElectionAction} hidden={{ election_id: e.id }} requireText={e.public_ref} reasonLabel="Reason (audit-logged)" />
               </td></tr>); })}
           </tbody>

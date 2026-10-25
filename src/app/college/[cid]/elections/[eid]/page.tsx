@@ -69,7 +69,7 @@ export default async function Overview({ params }: { params: Promise<{ cid: stri
             <div className="w-full rounded-xl border border-g200 p-4">
               <ActionForm action={lifecycleAction} className="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <input type="hidden" name="election_id" value={eid} /><input type="hidden" name="op" value="resume" />
-                <div className="flex-1"><Field label={`Closing time (${e.timezone}) — extend if needed`} htmlFor="ends_at"><Input id="ends_at" name="ends_at" type="datetime-local" defaultValue={utcToZonedInput(e.ends_at, e.timezone)} /></Field></div>
+                <div className="flex-1"><Field label={`Closing time (${e.timezone}), extend if needed`} htmlFor="ends_at"><Input id="ends_at" name="ends_at" type="datetime-local" defaultValue={utcToZonedInput(e.ends_at, e.timezone)} /></Field></div>
                 <SubmitButton variant="primary">Resume voting</SubmitButton>
               </ActionForm>
               <div className="mt-3 flex flex-wrap gap-2"><ButtonLink href={`${base}/voters`} variant="outline" size="sm">Add voters</ButtonLink><ButtonLink href={`${base}/positions`} variant="outline" size="sm">Candidate status</ButtonLink></div>

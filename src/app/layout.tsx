@@ -5,7 +5,7 @@ import { SwRegister } from "@/components/sw-register";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "V.app — Your campus. Your choice.", template: "%s · V.app" },
+  title: { default: "V.app · Your campus. Your choice.", template: "%s · V.app" },
   description: "Secure, private digital elections for colleges, student unions and campus associations. Every valid vote counts.",
   applicationName: "V.app",
   manifest: "/manifest.webmanifest",

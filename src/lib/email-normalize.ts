@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /** Canonical form used everywhere eligibility is compared. Deliberately conservative:
  *  trims, removes zero-width chars, NFKC-normalises and lower-cases. It does NOT strip
- *  dots or "+tags" — a college mail server may treat those as different mailboxes. */
+ *  dots or "+tags", a college mail server may treat those as different mailboxes. */
 export function normalizeEmail(input: unknown): string | null {
   if (typeof input !== "string") return null;
   const s = input.normalize("NFKC").replace(/[​-‍﻿]/g, "").trim().toLowerCase().replace(/^mailto:/, "");

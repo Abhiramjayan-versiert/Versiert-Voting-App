@@ -22,7 +22,7 @@ async function load(ref: string) {
 
 export async function generateMetadata({ params }: { params: Promise<{ ref: string }> }) {
   const r = await load((await params).ref);
-  return { title: r ? `Results — ${r.data.title}` : "Results", description: r ? `Published results for ${r.data.title} at ${r.college}.` : undefined };
+  return { title: r ? `Results: ${r.data.title}` : "Results", description: r ? `Published results for ${r.data.title} at ${r.college}.` : undefined };
 }
 
 export default async function PublicResults({ params }: { params: Promise<{ ref: string }> }) {
@@ -45,7 +45,7 @@ export default async function PublicResults({ params }: { params: Promise<{ ref:
         <p className="eyebrow mt-6 text-g500">{d.event_name}</p>
         <h1 className="mt-2 text-[2.2rem] font-semibold leading-[1.05] sm:text-[3rem]">{d.title}</h1>
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <Badge tone={final ? "published" : "results_pending"}>{final ? "Final results" : "Published — correction window open"}</Badge>
+          <Badge tone={final ? "published" : "results_pending"}>{final ? "Final results" : "Published, correction window open"}</Badge>
           <span className="text-sm text-g500">Published {fmtDate(row.published_at ?? row.created_at, row.timezone)} · voting closed {fmtDate(d.closed_at, row.timezone)}</span>
         </div>
         {!final && <p className="mt-3 text-sm text-g600">These results become final on {fmtDate(correctionEnds, row.timezone)} unless the election administrators issue a correction.</p>}
@@ -58,7 +58,7 @@ export default async function PublicResults({ params }: { params: Promise<{ ref:
         <div className="mt-8"><ResultsView r={d.results} /></div>
         <section className="mt-10 rounded-2xl bg-g50 p-5 text-sm text-g600">
           <h2 className="font-semibold text-ink">About these results</h2>
-          <p className="mt-2">Only accepted ballots are counted — at most one per eligible voter per position. Percentages are shares of valid candidate votes for each position; abstentions are reported separately. Who voted for whom is never recorded or shown. Ties are shown as ties; the college resolves them under its own rules.</p>
+          <p className="mt-2">Only accepted ballots are counted, at most one per eligible voter per position. Percentages are shares of valid candidate votes for each position; abstentions are reported separately. Who voted for whom is never recorded or shown. Ties are shown as ties; the college resolves them under its own rules.</p>
           <p className="mt-2">Integrity checks at publication: {d.integrity.every((i) => i.ok) ? "all passed" : "see administrators"}. Snapshot fingerprint <span className="break-all font-mono text-xs">{row.data_hash}</span>.</p>
           <p className="mt-2"><span className="font-medium text-ink">Verify your own vote:</span> enter the VC- verification code you received after voting at <Link href="/receipt" className="underline">/receipt</Link> to see exactly how your ballot was recorded.</p>
           <p className="mt-2"><Link href="/privacy" className="underline">How V.app protects voters</Link></p>

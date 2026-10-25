@@ -25,8 +25,8 @@ export default async function Review({ params }: { params: Promise<{ cid: string
             <Row k="Eligible voters" v={`${r.voters.toLocaleString("en-IN")} on the list · each verifies with the uploaded email + student ID`} />
             <Row k="Positions & candidates" v={<ul className="space-y-2">{r.positions.map((p) => (
               <li key={p.id}><span className="font-medium">{p.name}</span> <span className="text-g500">· {p.max_selections === 1 ? "1 choice" : `up to ${p.max_selections}`}{p.eligible_groups?.length ? ` · groups ${p.eligible_groups.join(", ")}` : ""}</span>
-                <span className="block text-g600">{cands.filter((c) => c.position_id === p.id).map((c) => c.full_name).join(", ") || "—"}</span></li>))}</ul>} />
-            <Row k="Voting rules" v={<>{e.secret_ballot ? "Secret ballot" : <Badge tone="warning">Open ballot — choices linked to voters</Badge>} · one vote per position per voter · {e.allow_abstain ? "abstention allowed" : "no abstention"} · {e.require_all_positions ? "all positions required" : "partial ballots allowed"}</>} />
+                <span className="block text-g600">{cands.filter((c) => c.position_id === p.id).map((c) => c.full_name).join(", ") || "-"}</span></li>))}</ul>} />
+            <Row k="Voting rules" v={<>{e.secret_ballot ? "Secret ballot" : <Badge tone="warning">Open ballot, choices linked to voters</Badge>} · one vote per position per voter · {e.allow_abstain ? "abstention allowed" : "no abstention"} · {e.require_all_positions ? "all positions required" : "partial ballots allowed"}</>} />
             <Row k="Results" v={<>Hidden from students until published · {e.results_require_approval ? "you approve publication" : "auto-publish at close if integrity checks pass"} · {e.admin_live_results ? "live tallies visible to administrators" : "no live tallies"}</>} />
             <Row k="Retention & deletion" v={<>Voter list, verification and ballot data deleted <strong>{e.retention_days} day{e.retention_days === 1 ? "" : "s"}</strong> after publication. {e.keep_public_results ? "Aggregate results page kept." : "Results page also removed."}</>} />
           </dl>

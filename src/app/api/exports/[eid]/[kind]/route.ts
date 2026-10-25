@@ -26,7 +26,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ eid: str
   const resultsAllowed = auth.ctx.role === "super_admin"
     ? ["open", "paused", "closed", "results_pending", "published", "retention", "deleted"].includes(st)
     : ["published", "retention", "deleted"].includes(st);
-  const pubStatus = published ? `Published ${fmt(e.published_at, e.timezone)}` : st === "deleted" ? "Published (data since deleted)" : "PROVISIONAL — not published";
+  const pubStatus = published ? `Published ${fmt(e.published_at, e.timezone)}` : st === "deleted" ? "Published (data since deleted)" : "PROVISIONAL, not published";
   const base = `${e.public_ref}-${e.slug.replace(/-[0-9a-f]{6}$/, "")}`.slice(0, 60);
   const send = (body: Buffer | string, name: string, type: string) => new NextResponse(body as BodyInit, {
     headers: { "Content-Type": type, "Content-Disposition": `attachment; filename="${name}"`, "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
@@ -105,7 +105,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ eid: str
       { name: "Position summary", columns: posCols.map((h, i) => ({ header: h, width: [26, 16, 14, 12, 20, 12, 40][i], numFmt: i === 3 ? "0.00" : undefined })), rows: posRows },
       { name: "Participation by group", columns: [{ header: "Voter group", width: 24 }, { header: "Eligible", width: 12 }, { header: "Voted (any position)", width: 22 }, { header: "Turnout %", width: 12, numFmt: "0.00" }],
         rows: groups.map((g) => [g.grp, g.eligible, g.voted, g.eligible ? Math.round((g.voted * 10000) / g.eligible) / 100 : 0]) },
-    ], { title: `${e.title} — results` });
+    ], { title: `${e.title}, results` });
     await log(kind);
     return send(buf, `${base}-report.xlsx`, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
   }
@@ -114,7 +114,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ eid: str
     if (e.secret_ballot) return NextResponse.json({ error: "Secret-ballot elections have no voter-level record." }, { status: 403 });
     const rows = await withCtx(auth.ctx, (tx) => tx`select * from ballot.open_register(${eid})`);
     const buf = await buildWorkbook([{ name: "Open ballot record", columns: [{ header: "Voter email", width: 34 }, { header: "Name", width: 26 }, { header: "Position", width: 26 }, { header: "Choice", width: 28 }],
-      rows: rows.map((x) => [x.voter_email, x.voter_name, x.position_name, x.candidate_name]) }], { title: `${e.title} — open ballot record` });
+      rows: rows.map((x) => [x.voter_email, x.voter_name, x.position_name, x.candidate_name]) }], { title: `${e.title}, open ballot record` });
     await log(kind);
     return send(buf, `${base}-open-ballot-record.xlsx`, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
   }

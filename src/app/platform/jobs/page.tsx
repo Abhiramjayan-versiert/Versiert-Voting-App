@@ -43,7 +43,7 @@ export default async function Jobs() {
           <tr key={j.id}><td>{j.title}<span className="block text-xs text-g500">{j.college} · <span className="font-mono">{j.public_ref}</span></span></td>
             <td><Badge tone={j.status}>{j.status}</Badge>{j.last_error && <span className="block text-xs text-[#ff9b94]">{j.last_error}</span>}</td>
             <td className="text-xs text-g300">{fmtDate(j.run_after)}<span className="block text-g500">{relTime(j.run_after)}</span></td><td className="tabular">{j.attempts}</td>
-            <td className="font-mono text-[0.7rem] text-g400">{Object.keys(j.processed).length ? Object.entries(j.processed).map(([k, v]) => `${k}:${v}`).join(" ") : "—"}</td>
+            <td className="font-mono text-[0.7rem] text-g400">{Object.keys(j.processed).length ? Object.entries(j.processed).map(([k, v]) => `${k}:${v}`).join(" ") : "-"}</td>
             <td className="whitespace-nowrap">
               {j.status === "failed" && <ActionForm action={retryCleanupAction}><input type="hidden" name="election_id" value={j.election_id} /><SubmitButton variant="outline-dark" size="sm">Retry</SubmitButton></ActionForm>}
               {["scheduled", "notified"].includes(j.status) && <Confirm triggerClass="text-xs text-[#ffd27a] underline" trigger="Delete now" title="Permanently delete this election's data now?" tone="danger" confirmLabel="Delete permanently"
@@ -74,7 +74,7 @@ export default async function Jobs() {
         <thead><tr><th>Started</th><th>Job</th><th>Status</th><th>Duration</th><th>Result</th></tr></thead>
         <tbody>{d.runs.map((r) => (
           <tr key={r.id}><td className="text-xs text-g300">{fmtDate(r.started_at)}</td><td className="font-mono">{r.job}</td><td><Badge tone={r.status}>{r.status}</Badge></td>
-            <td className="tabular text-xs">{r.finished_at ? `${new Date(r.finished_at).getTime() - new Date(r.started_at).getTime()} ms` : "—"}</td>
+            <td className="tabular text-xs">{r.finished_at ? `${new Date(r.finished_at).getTime() - new Date(r.started_at).getTime()} ms` : "-"}</td>
             <td className="max-w-md break-words font-mono text-[0.7rem] text-g400">{JSON.stringify(r.details)}</td></tr>))}
         </tbody>
       </Table>

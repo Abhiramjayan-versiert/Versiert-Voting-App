@@ -30,7 +30,7 @@ export default async function Dashboard({ params }: { params: Promise<{ cid: str
   for (const e of drafts) {
     const r = await readiness(ctx, e.id);
     if (!r.ok) tasks.push({ t: `${e.title}: ${r.issues[0]}${r.issues.length > 1 ? ` (+${r.issues.length - 1} more)` : ""}`, href: `/college/${cid}/elections/${e.id}` });
-    else tasks.push({ t: `${e.title} is ready — review and activate it`, href: `/college/${cid}/elections/${e.id}/review` });
+    else tasks.push({ t: `${e.title} is ready, review and activate it`, href: `/college/${cid}/elections/${e.id}/review` });
   }
   for (const e of by(["results_pending"])) tasks.push({ t: `${e.title}: results are waiting for your review`, href: `/college/${cid}/elections/${e.id}/results` });
   for (const e of d.els.filter((x) => x.flags > 0)) tasks.push({ t: `${e.title}: ${e.flags} integrity incident(s) to resolve`, href: `/college/${cid}/elections/${e.id}/results` });

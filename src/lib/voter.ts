@@ -82,7 +82,7 @@ export async function verifyVoterIdentity(slug: string, rawEmail: string, rawStu
   const sent = await sendMailNow({
     to: email,
     subject: `${code} is your voting code for ${e.title}`,
-    text: `Your V.app voting code for "${e.title}" (${e.college_name}) is:\n\n${code}\n\nIt expires in ${OTP_MINUTES} minutes and can be used once.\n\nIf you did not request this, someone may be trying to vote in your name. Do not share this code, and tell your election administrator.\n\n— V.app · Your campus. Your choice.`,
+    text: `Your V.app voting code for "${e.title}" (${e.college_name}) is:\n\n${code}\n\nIt expires in ${OTP_MINUTES} minutes and can be used once.\n\nIf you did not request this, someone may be trying to vote in your name. Do not share this code, and tell your election administrator.\n\nV.app · Your campus. Your choice.`,
   });
   if (!sent.ok) {
     await securityEvent({ kind: "otp_send_failed", severity: "warning", collegeId: e.college_id, electionId: e.id, details: { error: sent.error } });

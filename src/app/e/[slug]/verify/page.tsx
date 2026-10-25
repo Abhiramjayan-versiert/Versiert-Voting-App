@@ -24,7 +24,7 @@ export default async function Verify({ params, searchParams }: { params: Promise
       <Link href={`/e/${slug}`} className="text-sm text-g500 hover:text-ink">← {e.title}</Link>
       <h1 className="mt-4 text-[2rem] font-semibold leading-tight">Verify it's you</h1>
       <p className="mt-2 text-g600">Enter the email your college registered for you and your student ID.{needsCode ? " We'll then email you a 6-digit code to confirm it's really you." : ""} Only students on the uploaded voter list can vote.</p>
-      {sp.expired && <Notice tone="warning" className="mt-5">Your voting session expired. Verify again to continue — anything you already submitted is safe.</Notice>}
+      {sp.expired && <Notice tone="warning" className="mt-5">Your voting session expired. Verify again to continue. Anything you already submitted is safe.</Notice>}
       {isTestMode() && <Notice tone="info" className="mt-5" title="Test mode">Try <span className="font-mono">student001@northfield.test</span> with student ID <span className="font-mono">T0001</span> (student002 → T0002, and so on).{needsCode ? " Codes appear in the Super Admin test mailbox." : ""}</Notice>}
       <div className="mt-6"><VerifyFlow slug={slug} verifyAction={verifyVoterAction} codeAction={verifyCodeAction} /></div>
     </VoterShell>

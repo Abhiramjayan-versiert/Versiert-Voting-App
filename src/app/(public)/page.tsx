@@ -5,11 +5,11 @@ import { ButtonLink } from "@/components/ui";
 const steps = [
   { n: "01", t: "Open your election link", d: "Your election administrator shares a link. No app store, no new account." },
   { n: "02", t: "Verify it's you", d: "Enter your registered email and student ID. Both must match the voter list your college uploaded." },
-  { n: "03", t: "Choose, review, submit", d: "One vote per position. Review everything before you submit — then it's final." },
+  { n: "03", t: "Choose, review, submit", d: "One vote per position. Review everything before you submit. Then it's final." },
 ];
 
 const trust = [
-  { t: "One vote per position — enforced by the database", d: "A unique constraint on election, voter and position means a second ballot for the same position can never be counted, even from two tabs at once." },
+  { t: "One vote per position, enforced by the database", d: "A unique constraint on election, voter and position means a second ballot for the same position can never be counted, even from two tabs at once." },
   { t: "Who voted is stored apart from how they voted", d: "Participation and ballot choices live in separate tables with no shared key, no voter ID and no timestamp on the choice." },
   { t: "Tamper-evident audit trail", d: "Every administrative action is written to a hash-chained, append-only log that is checked before results are published." },
   { t: "Data that doesn't linger", d: "After results are published, voter lists and ballots are deleted on a schedule set before the election opens." },
@@ -31,7 +31,7 @@ export default function Home() {
               </span>
             </h1>
             <p className="mt-7 max-w-xl text-lg text-g600">
-              Secure digital elections for student unions, clubs and campus associations — simple for students, accountable for administrators, private by design.
+              Secure digital elections for student unions, clubs and campus associations, simple for students, accountable for administrators, private by design.
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <ButtonLink href="/vote" variant="primary" size="lg">Find your election</ButtonLink>
@@ -83,7 +83,7 @@ export default function Home() {
             <div>
               <p className="eyebrow text-g500">Built for trust</p>
               <h2 className="mt-3 text-3xl font-semibold leading-tight">Every valid vote counts. Nothing else does.</h2>
-              <p className="mt-4 text-g600">We describe exactly what V.app guarantees — and what it doesn't — in plain language.</p>
+              <p className="mt-4 text-g600">We describe exactly what V.app guarantees, and what it doesn't, in plain language.</p>
               <Link href="/privacy" className="mt-6 inline-block font-medium underline decoration-lime decoration-[3px] underline-offset-4 hover:decoration-ink">Read the voting privacy model</Link>
             </div>
             <div className="grid gap-px overflow-hidden rounded-[var(--radius-card)] border border-g200 bg-g200 sm:grid-cols-2">

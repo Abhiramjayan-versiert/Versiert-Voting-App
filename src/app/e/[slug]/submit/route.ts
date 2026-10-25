@@ -18,12 +18,12 @@ const body = z.object({
 });
 
 const MESSAGES: Record<string, [number, string]> = {
-  SESSION_INVALID: [401, "Your voting session has expired. Verify your email again — anything already submitted is safe."],
+  SESSION_INVALID: [401, "Your voting session has expired. Verify your email again. Anything already submitted is safe."],
   ELECTION_NOT_OPEN: [409, "Voting is not open for this election right now. Nothing was recorded."],
   NOT_ELIGIBLE: [403, "Your email is not eligible for this election. Contact your election administrator if you need assistance."],
-  NOT_ELIGIBLE_FOR_POSITION: [403, "Your ballot included a position you're not eligible for. Nothing was recorded — reload the ballot and try again."],
-  INVALID_POSITION: [400, "Your ballot didn't match this election. Nothing was recorded — reload the page and try again."],
-  INVALID_CANDIDATE: [400, "A selected candidate isn't valid for that position. Nothing was recorded — reload the page and try again."],
+  NOT_ELIGIBLE_FOR_POSITION: [403, "Your ballot included a position you're not eligible for. Nothing was recorded. Reload the ballot and try again."],
+  INVALID_POSITION: [400, "Your ballot didn't match this election. Nothing was recorded. Reload the page and try again."],
+  INVALID_CANDIDATE: [400, "A selected candidate isn't valid for that position. Nothing was recorded. Reload the page and try again."],
   TOO_MANY_SELECTIONS: [400, "You selected more candidates than allowed for a position. Nothing was recorded."],
   DUPLICATE_CANDIDATE: [400, "The same candidate was selected twice. Nothing was recorded."],
   DUPLICATE_POSITION_IN_BALLOT: [400, "A position appeared twice in your ballot. Nothing was recorded."],
@@ -46,7 +46,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
 
   let parsed: z.infer<typeof body>;
   try { parsed = body.parse(await req.json()); }
-  catch { return NextResponse.json({ error: "Your ballot could not be read. Nothing was recorded — reload and try again." }, { status: 400 }); }
+  catch { return NextResponse.json({ error: "Your ballot could not be read. Nothing was recorded. Reload and try again." }, { status: 400 }); }
 
   try {
     const [row] = await sql().begin(async (tx) => {
@@ -71,6 +71,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
       return NextResponse.json({ error: m[1], code }, { status: m[0] });
     }
     console.error("[submit] unexpected", (err as Error).name);
-    return NextResponse.json({ error: "Your ballot could not be submitted. Nothing was recorded — please try again." }, { status: 500 });
+    return NextResponse.json({ error: "Your ballot could not be submitted. Nothing was recorded. Please try again." }, { status: 500 });
   }
 }

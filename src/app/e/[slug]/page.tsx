@@ -47,7 +47,7 @@ export default async function Entry({ params, searchParams }: { params: Promise<
         <h2 id="how" className="font-semibold">How it works</h2>
         <ol className="mt-3 space-y-2 text-sm text-g600 list-decimal pl-5">
           <li>Enter the email address your college registered for you and your student ID. Both must match the voter list your college uploaded.</li>
-          <li>Your ballot opens for a short session — keep the tab open until you submit.</li>
+          <li>Your ballot opens for a short session. Keep the tab open until you submit.</li>
           <li>Choose a candidate for each position, review your choices, then submit. You may skip a position and come back later while voting is open.</li>
           <li>You can vote once per position. Submitted choices are final.</li>
         </ol>
@@ -57,7 +57,7 @@ export default async function Entry({ params, searchParams }: { params: Promise<
         {e.secret_ballot ? (
           <p className="mt-2 text-sm text-g600">This is a <strong className="text-ink">secret ballot</strong>. V.app records <em>that</em> you voted for a position separately from <em>what</em> you chose, with no link between them, so administrators can see turnout but not your choices. Your email is used only to confirm eligibility and is deleted after the retention period. <a href="/privacy" className="underline">How this works</a>.</p>
         ) : (
-          <p className="mt-2 text-sm text-g600"><strong className="text-ink">This is an open ballot.</strong> Your college has configured this election so that each choice is linked to the voter and can be viewed by its election administrators. If you have concerns, contact your election administrator before voting.</p>
+          <p className="mt-2 text-sm text-g600"><strong className="text-ink">This is an open ballot.</strong> Your college has configured this election so that each choice is linked to the voter and can be viewed by its election administrators. If you have concerns. Contact your election administrator before voting.</p>
         )}
       </section>
     </VoterShell>

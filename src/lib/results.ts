@@ -1,4 +1,4 @@
-// Pure result calculation — no I/O, fully unit-tested.
+// Pure result calculation, no I/O, fully unit-tested.
 
 export type PositionIn = { id: string; name: string; sort_order: number; max_selections: number };
 export type CandidateIn = { id: string; position_id: string; full_name: string; status: string; sort_order?: number };

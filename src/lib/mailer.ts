@@ -29,7 +29,7 @@ export async function sendMailNow(m: Mail): Promise<{ ok: boolean; error?: strin
       await gmailTransport().sendMail({ from, to: m.to, subject: m.subject, text: m.text });
       return { ok: true };
     } catch (err) {
-      // Never log the message body (it may contain a one-time code) — only the error class/code.
+      // Never log the message body (it may contain a one-time code), only the error class/code.
       const code = (err as { code?: string; responseCode?: number }).responseCode ?? (err as { code?: string }).code ?? (err as Error).name;
       return { ok: false, error: `Gmail SMTP error ${code}` };
     }

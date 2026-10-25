@@ -63,7 +63,7 @@ export function guessMapping(headers: string[]): Partial<Mapping> {
 
 export function validateRows(sheet: ParsedSheet, m: Mapping): ValidatedImport {
   if (m.email == null || m.email < 0 || m.email >= sheet.headers.length) throw new ImportError("Choose which column contains email addresses.");
-  if (m.studentId == null || m.studentId < 0 || m.studentId >= sheet.headers.length) throw new ImportError("Choose which column contains student IDs — students verify with their email and student ID.");
+  if (m.studentId == null || m.studentId < 0 || m.studentId >= sheet.headers.length) throw new ImportError("Choose which column contains student IDs. Students verify with their email and student ID.");
   const seen = new Set<string>();
   const seenIds = new Set<string>();
   const out: ValidatedImport = { total: sheet.rows.length, accepted: [], rejected: [], duplicates: 0 };

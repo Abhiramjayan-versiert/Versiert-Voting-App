@@ -9,11 +9,11 @@ export default async function Exports({ params }: { params: Promise<{ cid: strin
   const st = e.effective as string;
   const resultsReady = st !== "draft" && st !== "scheduled" && talliesVisible(ctx.role, st);
   const items = [
-    { k: "report.xlsx", t: "Election report (Excel)", d: "Summary, candidate-wise results, position summary and participation — one workbook, separate sheets.", ok: resultsReady },
+    { k: "report.xlsx", t: "Election report (Excel)", d: "Summary, candidate-wise results, position summary and participation, one workbook, separate sheets.", ok: resultsReady },
     { k: "candidates.csv", t: "Candidate-wise results (CSV)", d: "College, event, reference, position, candidate, votes, percentage, winner/tie status, closing time, publication status.", ok: resultsReady },
     { k: "positions.csv", t: "Position summary (CSV)", d: "Eligible voters, participants, turnout, valid ballots, abstentions and outcome per position.", ok: resultsReady },
     { k: "participation.csv", t: "Participation statistics (CSV)", d: "Aggregate turnout by position and by voter group. No individual voter data.", ok: st !== "draft" },
-    { k: "ballots.csv", t: "Anonymous ballot list (CSV)", d: "Every ballot's verification code and choices — no names, emails or times — for an independent recount. Available after publication.", ok: st === "published" || st === "retention" },
+    { k: "ballots.csv", t: "Anonymous ballot list (CSV)", d: "Every ballot's verification code and choices, no names, emails or times, for an independent recount. Available after publication.", ok: st === "published" || st === "retention" },
     ...(ctx.role === "super_admin" ? [{ k: "audit.csv", t: "Administrative audit records (CSV)", d: "This election's administrative actions. Contains no ballot choices.", ok: true }] : []),
     ...(!e.secret_ballot ? [{ k: "open-register.xlsx", t: "Open-ballot voting record", d: "Voter-by-voter choices. Available only because this election was configured as an open ballot.", ok: resultsReady }] : []),
   ];

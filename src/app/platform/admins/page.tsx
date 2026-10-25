@@ -28,7 +28,7 @@ export default async function Admins({ searchParams }: { searchParams: Promise<R
           <tbody>{rows.map((u) => (
             <tr key={u.id}>
               <td><Link href={`/platform/admins/${u.id}`} className="font-medium hover:text-lime">{u.name}</Link><span className="block text-xs text-g500">{u.email}</span></td>
-              <td className="text-g300">{u.colleges.join(", ") || "—"}</td>
+              <td className="text-g300">{u.colleges.join(", ") || "-"}</td>
               <td><Badge tone={u.status}>{u.status}</Badge></td>
               <td className="text-g300">{u.status === "invited" ? (u.invite_pending ? "Pending" : "Expired") : "Accepted"}</td>
               <td>{u.mfa_enabled ? "On" : "Off"}</td>

@@ -227,7 +227,7 @@ export function Bars({ items, label, dark, hideValues }: { items: { label: strin
 }
 
 export function fmtDate(d: Date | string | null | undefined, tz = "Asia/Kolkata", style: "full" | "short" = "short") {
-  if (!d) return "—";
+  if (!d) return "-";
   return new Intl.DateTimeFormat("en-IN", { dateStyle: style === "full" ? "full" : "medium", timeStyle: "short", timeZone: tz }).format(new Date(d));
 }
 export function relTime(d: Date | string | null | undefined) {

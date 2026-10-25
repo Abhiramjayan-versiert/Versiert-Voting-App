@@ -35,7 +35,7 @@ export default async function Results({ params }: { params: Promise<{ cid: strin
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Badge tone={published ? "published" : "results_pending"}>{published ? `Published ${fmtDate(e.published_at, e.timezone)}` : st === "results_pending" ? "Provisional — awaiting your review" : "Provisional — voting in progress"}</Badge>
+        <Badge tone={published ? "published" : "results_pending"}>{published ? `Published ${fmtDate(e.published_at, e.timezone)}` : st === "results_pending" ? "Provisional, awaiting your review" : "Provisional, voting in progress"}</Badge>
         {(st === "open" || st === "paused") && <AutoRefresh seconds={15} />}
         <div className="flex gap-2">{published && <><CopyButton text={link} label="Copy public link" /><ButtonLink href={`/r/${e.public_ref}`} variant="outline" size="sm">Open public page</ButtonLink></>}<PrintButton /></div>
       </div>

@@ -30,7 +30,7 @@ export function totp(secret: string, offset = 0) {
   return String((h.readUInt32BE(o) & 0x7fffffff) % 1_000_000).padStart(6, "0");
 }
 
-/** Waits for a TOTP step that hasn't been used yet — the server rejects replayed codes. */
+/** Waits for a TOTP step that hasn't been used yet, the server rejects replayed codes. */
 let lastStep = 0;
 export async function freshTotp(secret: string) {
   for (;;) {

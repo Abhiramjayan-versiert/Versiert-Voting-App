@@ -22,7 +22,7 @@ export default async function Account() {
         <div><p className="eyebrow text-g500">Account</p><h1 className="mt-2 text-3xl font-semibold">{s.user.name}</h1><p className="text-g600">{s.user.email} · {s.user.role === "super_admin" ? "Developer / Super Admin" : "College election administrator"}</p></div>
         <Card>
           <h2 className="font-semibold">Two-step verification</h2>
-          <p className="mt-1 text-sm text-g600">{s.user.mfa_enabled ? "On — an authenticator code is required at sign-in." : "Off. We strongly recommend turning it on."}</p>
+          <p className="mt-1 text-sm text-g600">{s.user.mfa_enabled ? "On. An authenticator code is required at sign-in." : "Off. We strongly recommend turning it on."}</p>
           <ButtonLink href="/admin/mfa/setup" variant="outline" size="sm" className="mt-3">{s.user.mfa_enabled ? "Replace authenticator" : "Turn on"}</ButtonLink>
         </Card>
         <Card>

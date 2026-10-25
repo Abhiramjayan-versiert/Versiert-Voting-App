@@ -33,7 +33,7 @@ async function addCandidate(page: Page, position: string, name: string) {
   await expect(card.getByText(name, { exact: true })).toBeVisible();
 }
 
-test("1–2. Developer creates a college and invites an administrator", async ({ page }) => {
+test("1-2. Developer creates a college and invites an administrator", async ({ page }) => {
   await loginSuper(page);
   await page.goto("/platform/colleges/new");
   await page.fill("#name", `E2E Test College ${run}`);
@@ -59,7 +59,7 @@ test("1–2. Developer creates a college and invites an administrator", async ({
   await expect(page.getByRole("heading", { name: "Invitation unavailable" })).toBeVisible();
 });
 
-test("3–7. Administrator builds the election and opens it", async ({ page }) => {
+test("3-7. Administrator builds the election and opens it", async ({ page }) => {
   await loginAdmin(page, ADMIN.email, ADMIN.password);
   collegePath = new URL(page.url()).pathname.replace(/\/$/, "");
   await page.goto(collegePath + "/elections/new");
@@ -80,7 +80,7 @@ test("3–7. Administrator builds the election and opens it", async ({ page }) =
   await page.getByRole("button", { name: "Import 6 voters" }).click();
   await expect(page.getByText(/Imported 6 voter\(s\)\. 0 already on the list, 3 rejected/)).toBeVisible();
 
-  // 5–6. Positions and candidates.
+  // 5-6. Positions and candidates.
   await page.goto(electionPath + "/positions");
   for (const pos of ["Chairman", "Vice Chairman"]) {
     await page.locator("#pn-new").fill(pos);
@@ -108,10 +108,10 @@ test("3–7. Administrator builds the election and opens it", async ({ page }) =
   publicRef = (await page.locator("text=/Ref E-[0-9A-F]{10}/").textContent())!.match(/E-[0-9A-F]{10}/)![0];
 });
 
-test("8–13. Students verify, vote once per position, duplicates rejected", async ({ browser }) => {
+test("8-13. Students verify, vote once per position, duplicates rejected", async ({ browser }) => {
   const ctx = await browser.newContext();
   const a = await ctx.newPage();
-  // 8. Typing an email alone is not enough — the code is required.
+  // 8. Typing an email alone is not enough, the code is required.
   await a.goto(`/e/${slug}/ballot`);
   await expect(a).toHaveURL(new RegExp(`/e/${slug}/verify`));
   await verifyVoter(a, ctx, slug, "voter1@e2e-college.test");
@@ -134,7 +134,7 @@ test("8–13. Students verify, vote once per position, duplicates rejected", asy
   expect(receipt).toMatch(/^VA-/);
   expect(await a.content()).not.toContain("Asha Kumar"); // confirmation never reveals the choice
 
-  // 10–11. Same voter tries Chairman again from the stale tab with a different candidate → rejected.
+  // 10-11. Same voter tries Chairman again from the stale tab with a different candidate → rejected.
   await b.getByText("Bilal Rahman", { exact: true }).click();
   await b.getByRole("button", { name: "Next position" }).click();
   await b.getByRole("button", { name: "Review ballot" }).click();
@@ -196,7 +196,7 @@ test("8–13. Students verify, vote once per position, duplicates rejected", asy
   await ctx3.close();
 });
 
-test("14–17. Close, review, publish, export — results match accepted ballots", async ({ page: firstPage }) => {
+test("14-17. Close, review, publish, export, results match accepted ballots", async ({ page: firstPage }) => {
   let page = firstPage;
   await loginAdmin(page, ADMIN.email, ADMIN.password);
   await page.goto(electionPath + "/monitor");
@@ -240,7 +240,7 @@ test("14–17. Close, review, publish, export — results match accepted ballots
   await pub.goto(`/r/${publicRef}`);
   await expect(pub.getByRole("heading", { name: `College Union Election ${run}` })).toBeVisible();
   await expect(pub.getByText("Winner: Asha Kumar")).toBeVisible();
-  await expect(pub.getByText(/Tie — needs resolution/)).toBeVisible();
+  await expect(pub.getByText(/Tie, needs resolution/)).toBeVisible();
   expect(await pub.content()).not.toContain("voter1@e2e-college.test");
   // The public page shows the full published results: polling rate, votes cast, winners and candidate totals.
   await expect(pub.getByText("Polling rate")).toBeVisible();

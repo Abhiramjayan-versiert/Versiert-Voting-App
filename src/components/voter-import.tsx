@@ -43,7 +43,7 @@ export function VoterImport({ electionId, previewAction, commitAction, maxMb }: 
   const p = (pState?.ok ? pState.data : null) as Preview | null;
   const committed = cState?.ok;
   const opt = (sel: number | null, allowNone = true) => (
-    <>{allowNone && <option value="-1">— Not in file —</option>}{p?.headers.map((h, i) => <option key={i} value={i}>{h}</option>)}</>
+    <>{allowNone && <option value="-1">(not in file)</option>}{p?.headers.map((h, i) => <option key={i} value={i}>{h}</option>)}</>
   );
 
   return (

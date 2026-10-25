@@ -15,12 +15,12 @@ export function ResultsView({ r, provisional, dark, percentOnly }: { r: Election
                 <p className="text-sm text-g500">{percentOnly ? `Turnout ${p.turnoutPct.toFixed(1)}%` : `${p.participants.toLocaleString("en-IN")} of ${p.eligible.toLocaleString("en-IN")} eligible voted (${p.turnoutPct.toFixed(1)}%)`}{!percentOnly && p.abstentions ? ` · ${p.abstentions} abstained` : ""}{p.seats > 1 ? ` · ${p.seats} seats` : ""}</p>
               </div>
               {p.status === "no_votes" ? <Badge tone="info">No valid votes</Badge>
-                : p.status === "tie" ? <Badge tone="warning">Tie — needs resolution</Badge>
+                : p.status === "tie" ? <Badge tone="warning">Tie, needs resolution</Badge>
                 : <Badge tone={provisional ? "results_pending" : "published"}>{provisional ? "Leading" : winners.length > 1 ? "Winners" : "Winner"}: {winners.map((w) => w.name).join(", ")}</Badge>}
             </div>
             {p.status === "tie" && (
               <p className="mt-3 rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn">
-                {tied.map((t) => t.name).join(" and ")} are tied{winners.length ? ` for the remaining seat${p.seats - winners.length > 1 ? "s" : ""}` : ""}. V.app does not break ties — follow your college's documented tie-break policy.
+                {tied.map((t) => t.name).join(" and ")} are tied{winners.length ? ` for the remaining seat${p.seats - winners.length > 1 ? "s" : ""}` : ""}. V.app does not break ties, follow your college's documented tie-break policy.
               </p>
             )}
             <div className="mt-5">
@@ -32,7 +32,7 @@ export function ResultsView({ r, provisional, dark, percentOnly }: { r: Election
             {!percentOnly && <details className="mt-4 text-sm"><summary className="cursor-pointer text-g500 underline">Show as table</summary>
               <div className="mt-3"><Table dark={dark} caption={`${p.name} results`}>
                 <thead><tr><th>Candidate</th><th>Votes</th><th>Share of valid votes</th><th>Outcome</th></tr></thead>
-                <tbody>{p.candidates.map((c) => <tr key={c.id}><td>{c.name}</td><td className="tabular">{c.votes}</td><td className="tabular">{c.pct.toFixed(2)}%</td><td>{c.outcome === "winner" ? (provisional ? "Leading" : "Winner") : c.outcome === "tied" ? "Tied" : "—"}</td></tr>)}</tbody>
+                <tbody>{p.candidates.map((c) => <tr key={c.id}><td>{c.name}</td><td className="tabular">{c.votes}</td><td className="tabular">{c.pct.toFixed(2)}%</td><td>{c.outcome === "winner" ? (provisional ? "Leading" : "Winner") : c.outcome === "tied" ? "Tied" : "-"}</td></tr>)}</tbody>
               </Table></div>
             </details>}
           </Card>

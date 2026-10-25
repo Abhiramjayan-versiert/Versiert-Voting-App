@@ -27,7 +27,7 @@ export default async function Rules({ params }: { params: Promise<{ cid: string;
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <label className="flex gap-3 rounded-xl border border-g200 p-4 has-[:checked]:border-ink has-[:checked]:bg-g50">
                   <input type="radio" name="ballot_type" value="secret" defaultChecked={e.secret_ballot} className="mt-1 accent-ink" />
-                  <span><span className="block text-sm font-medium">Secret ballot (recommended)</span><span className="text-[0.82rem] text-g500">Choices are stored with no link to the voter. Nobody — including administrators — can see how a student voted.</span></span>
+                  <span><span className="block text-sm font-medium">Secret ballot (recommended)</span><span className="text-[0.82rem] text-g500">Choices are stored with no link to the voter. Nobody, including administrators, can see how a student voted.</span></span>
                 </label>
                 <label className={`flex gap-3 rounded-xl border border-g200 p-4 has-[:checked]:border-ink has-[:checked]:bg-g50 ${cfg.feature_open_ballot ? "" : "opacity-50"}`}>
                   <input type="radio" name="ballot_type" value="open" defaultChecked={!e.secret_ballot} disabled={!cfg.feature_open_ballot} className="mt-1 accent-ink" />
@@ -36,7 +36,7 @@ export default async function Rules({ params }: { params: Promise<{ cid: string;
               </div>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <Check name="allow_abstain" label="Allow abstention" description="Voters can record “abstain” for a position. Counted separately; never a candidate vote." defaultChecked={e.allow_abstain} />
-                <Check name="require_email_code" label="Email a 6-digit code to confirm each voter" description={emailOn ? "Recommended. After email + student ID match, the student must enter a code sent to that email — someone who only knows a classmate's email and roll number can't vote." : "Email isn't set up on this platform yet, so this has no effect until the Super Admin adds a Gmail sender."} defaultChecked={e.require_email_code !== false} />
+                <Check name="require_email_code" label="Email a 6-digit code to confirm each voter" description={emailOn ? "Recommended. After email + student ID match, the student must enter a code sent to that email. Someone who only knows a classmate's email and roll number can't vote." : "Email isn't set up on this platform yet, so this has no effect until the Super Admin adds a Gmail sender."} defaultChecked={e.require_email_code !== false} />
                 <Check name="require_all_positions" label="Require every position" description="Off (default): students may vote for some positions now and others later, or skip positions." defaultChecked={e.require_all_positions} />
               </div>
             </section>
